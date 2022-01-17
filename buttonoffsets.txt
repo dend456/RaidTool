@@ -1,0 +1,33 @@
+
+invite 254
+disband 258
+accept 25c
+decline 260
+makeleader 264
+options 268
+addlooter 26c
+removelooter 270
+dump 274
+ml 278
+assist 27c
+mark 280
+findpc 284
+lock 288
+unlock 28c
+remleader 290
+nogroup 294
+group1 298
+group2 29c
+group3 2a0
+group4 2a4
+group5 2a8
+group6 2ac
+group7 2b0
+group8 2b4
+group9 2b8
+group10 2bc
+group11 2c0
+group12 2c4
+invitetask 2c8
+inviteexped 2cc
+
