@@ -12,11 +12,7 @@
 #ifndef _DETOURS_H_
 #define _DETOURS_H_
 
-#ifdef _WIN64
-#pragma comment(lib, "detours64")
-#else
 #pragma comment(lib, "detours")
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
 //

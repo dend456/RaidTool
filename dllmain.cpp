@@ -12,6 +12,9 @@
 
 #pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "d3dx9.lib")
+#pragma comment(lib, "winmm.lib")
+#pragma comment(lib, "version.lib")
+#pragma comment(lib, "Setupapi.lib")
 
 #include <guiddef.h>
 #include "detours.h"
