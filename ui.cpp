@@ -1,3 +1,4 @@
+#include <Windows.h>
 #include <iostream>
 #include <queue>
 #include <fstream>
@@ -8,7 +9,7 @@
 #include "IconsFontAwesome5.h"
 #include "fontawesome-webfont.h"
 #include "ui.h"
-#include "detours.h"
+#include <detours/detours.h>
 #include "settings.h"
 #include <fmt/core.h>
 #include "icon.h"
@@ -383,7 +384,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
         hookInput();
 
         settingsIcon = getIcon("Tomato");
-        if(true) raid.init();
+        if(false) raid.init();
     }
 
     ImGuiIO& io = ImGui::GetIO();
@@ -417,7 +418,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
     }
     ImGui::End();
 
-    if (menuOpen || (settings::openWithRaidWindow && raid.raidWindowOpen()))
+    if (false && (menuOpen || (settings::openWithRaidWindow && raid.raidWindowOpen())))
     {
         ImGui::Begin("Raid");
         if (ImGui::Button("Exit"))
@@ -479,7 +480,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
                         if (raid.setSelectedRaider(r->name))
                         {
                             std::string targetStr = fmt::format("/target {}", std::string(r->name));
-                            Game::hookedCommandFunc(0, 0, 0, targetStr.c_str());
+                            Game::hookedCommandFunc(0, 0, targetStr.c_str());
                         }
                     }
 
@@ -551,7 +552,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
                     if (raid.setSelectedRaider(r->name))
                     {
                         std::string targetStr = fmt::format("/target {}", std::string(r->name));
-                        Game::hookedCommandFunc(0, 0, 0, targetStr.c_str());
+                        Game::hookedCommandFunc(0, 0, targetStr.c_str());
                     }
                 }
                 if (ImGui::BeginDragDropSource())
@@ -726,9 +727,16 @@ void UI::hookInput() noexcept
     }
 
     void** vTable = *reinterpret_cast<void***>(keyboard);
-    fnGetDeviceData = (IDirectInputDevice_GetDeviceData_t)DetourFunction((PBYTE)vTable[10], (PBYTE)HookedGetDeviceData);
-    fnGetDeviceState = (IDirectInputDevice_GetDeviceState_t)DetourFunction((PBYTE)vTable[9], (PBYTE)HookedGetDeviceState);
-    fnSetDeviceFormat = (IDirectInputDevice_SetDeviceFormat_t)DetourFunction((PBYTE)vTable[11], (PBYTE)HookedSetDeviceFormat);
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    fnGetDeviceData = (IDirectInputDevice_GetDeviceData_t)vTable[10];
+    fnGetDeviceState = (IDirectInputDevice_GetDeviceState_t)vTable[9];
+    fnSetDeviceFormat = (IDirectInputDevice_SetDeviceFormat_t)vTable[11];
+
+    DetourAttach(&(PVOID&)vTable[10], HookedGetDeviceData);
+    DetourAttach(&(PVOID&)vTable[9], HookedGetDeviceState);
+    DetourAttach(&(PVOID&)vTable[11], HookedSetDeviceFormat);
+    DetourTransactionCommit();
 
     Game::hook({ "RaidGroupFunc", "CommandFunc" });
     //Game::hook({ "RaidGroupFunc"});
@@ -737,9 +745,12 @@ void UI::hookInput() noexcept
 
 void UI::unhookInput() noexcept
 {
-    if (fnGetDeviceData) DetourRemove((PBYTE)fnGetDeviceData, (PBYTE)HookedGetDeviceData);
-    if (fnGetDeviceState) DetourRemove((PBYTE)fnGetDeviceState, (PBYTE)HookedGetDeviceState);
-    if (fnSetDeviceFormat) DetourRemove((PBYTE)fnSetDeviceFormat, (PBYTE)HookedSetDeviceFormat);
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    if (fnGetDeviceData) DetourDetach(&(PVOID&)fnGetDeviceData, HookedGetDeviceData);
+    if (fnGetDeviceState) DetourDetach(&(PVOID&)fnGetDeviceState, HookedGetDeviceState);
+    if (fnSetDeviceFormat) DetourDetach(&(PVOID&)fnSetDeviceFormat, HookedSetDeviceFormat);
+    DetourTransactionCommit();
     Game::unhook();
     inputHooked = false;
 }

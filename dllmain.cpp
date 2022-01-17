@@ -12,9 +12,13 @@
 
 #pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "d3dx9.lib")
+#pragma comment(lib, "winmm.lib")
+
+#pragma comment(lib, "setupapi.lib")
+#pragma comment(lib, "version.lib")
 
 #include <guiddef.h>
-#include "detours.h"
+#include <detours/detours.h>
 #include "ui.h"
 #include "settings.h"
 #include <game.h>
@@ -71,7 +75,11 @@ void hookEndScene()
     }
 
     void** vTable = *reinterpret_cast<void***>(pDevice);
-    endScene = (EndSceneType)DetourFunction((PBYTE)vTable[42], (PBYTE)hookedEndScene);
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    endScene = (EndSceneType)vTable[42];
+    DetourAttach(&(PVOID&)vTable[42], (PBYTE)hookedEndScene);
+    DetourTransactionCommit();
 
     pDevice->Release();
     pD3D->Release();
@@ -88,7 +96,7 @@ DWORD __stdcall EjectThread(LPVOID lpParameter)
 DWORD WINAPI Menu(HINSTANCE hModule)
 {
     HANDLE hFile = CreateFile("raidtool/log.txt", GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    int nHandle = _open_osfhandle((long)hFile, _O_APPEND);
+    uint64_t nHandle = _open_osfhandle((uint64_t)hFile, _O_APPEND);
     settings::logFile = _fdopen(nHandle, "a");
     settings::load();
     Game::logFile = settings::logFile;
@@ -102,21 +110,30 @@ DWORD WINAPI Menu(HINSTANCE hModule)
     //freopen_s(&fperr, "CONERR$", "w", stderr);
     //freopen_s(&settings::logFile, "raidtool/log.txt", "a", stdout);
     //freopen_s(&fperr, "g:/b.txt", "w", stderr);
-    hookEndScene();
+    
+    //hookEndScene();
 
     FreeConsole();
 
-    while (true) 
+    Game::hook({ "CommandFunc" });
+    Game::hookedCommandFunc(0, 0, "/sit");
+    while (true)
     {
         Sleep(25);
-        if (!ui.isWindowOpen() || ui.exiting())
+        //if (!ui.isWindowOpen() || ui.exiting())
+        if(GetAsyncKeyState(VK_F7) & 1)
         {
             exiting = true;
             break;
         }
     }
-    DetourRemove((PBYTE)endScene, (PBYTE)hookedEndScene);
-    ui.shutdown();
+    /*
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourDetach(&(PVOID&)endScene, (PBYTE)hookedEndScene);
+    DetourTransactionCommit();
+    ui.shutdown();*/
+    Game::unhook();
 
     //if (fp) fclose(fp);
     //if (fperr) fclose(fperr);
@@ -132,6 +149,7 @@ BOOL WINAPI DllMain(HINSTANCE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
     case DLL_PROCESS_ATTACH:
         DllHandle = hModule;
         CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)Menu, NULL, 0, NULL);
+        break;
     case DLL_THREAD_ATTACH:
         break;
     case DLL_THREAD_DETACH:
