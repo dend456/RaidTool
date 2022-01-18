@@ -9,6 +9,7 @@
 
 #include <d3d9.h>
 #include <d3dx9.h>
+#include <MinHook.h>
 
 #pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "d3dx9.lib")
@@ -75,11 +76,10 @@ void hookEndScene()
     }
 
     void** vTable = *reinterpret_cast<void***>(pDevice);
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
-    endScene = (EndSceneType)vTable[42];
-    DetourAttach(&(PVOID&)vTable[42], (PBYTE)hookedEndScene);
-    DetourTransactionCommit();
+    EndSceneType es = (EndSceneType)vTable[42];
+
+    MH_CreateHook((LPVOID)es, hookedEndScene, (LPVOID*)&endScene);
+    MH_EnableHook(MH_ALL_HOOKS);
 
     pDevice->Release();
     pD3D->Release();
@@ -111,30 +111,28 @@ DWORD WINAPI Menu(HINSTANCE hModule)
     //freopen_s(&settings::logFile, "raidtool/log.txt", "a", stdout);
     //freopen_s(&fperr, "g:/b.txt", "w", stderr);
     
-    //hookEndScene();
 
     FreeConsole();
+    MH_Initialize();
+    //hookEndScene();
 
-    Game::hook({ "CommandFunc" });
-    Game::hookedCommandFunc(0, 0, "/sit");
+    Game::hook({ "RaidGroupFunc", "CommandFunc" });
     while (true)
     {
         Sleep(25);
-        //if (!ui.isWindowOpen() || ui.exiting())
-        if(GetAsyncKeyState(VK_F7) & 1)
+        if(GetAsyncKeyState(VK_F7) & 1 || !ui.isWindowOpen() || ui.exiting())
+        //if(GetAsyncKeyState(VK_F7) & 1)
         {
             exiting = true;
             break;
         }
     }
-    /*
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
-    DetourDetach(&(PVOID&)endScene, (PBYTE)hookedEndScene);
-    DetourTransactionCommit();
-    ui.shutdown();*/
+
+    //ui.shutdown();
     Game::unhook();
 
+    MH_DisableHook(MH_ALL_HOOKS);
+    MH_Uninitialize();
     //if (fp) fclose(fp);
     //if (fperr) fclose(fperr);
     if (settings::logFile) fclose(settings::logFile);

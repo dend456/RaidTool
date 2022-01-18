@@ -17,6 +17,7 @@
 #include <game.h>
 #include <classes.h>
 #include <raid.h>
+#include <MinHook.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_internal.h"
@@ -480,7 +481,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
                         if (raid.setSelectedRaider(r->name))
                         {
                             std::string targetStr = fmt::format("/target {}", std::string(r->name));
-                            Game::hookedCommandFunc(0, 0, targetStr.c_str());
+                            //Game::hookedCommandFunc(0, 0, 0, targetStr.c_str());
                         }
                     }
 
@@ -552,7 +553,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
                     if (raid.setSelectedRaider(r->name))
                     {
                         std::string targetStr = fmt::format("/target {}", std::string(r->name));
-                        Game::hookedCommandFunc(0, 0, targetStr.c_str());
+                        //Game::hookedCommandFunc(0, 0, 0, targetStr.c_str());
                     }
                 }
                 if (ImGui::BeginDragDropSource())
@@ -727,30 +728,36 @@ void UI::hookInput() noexcept
     }
 
     void** vTable = *reinterpret_cast<void***>(keyboard);
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
+    //DetourTransactionBegin();
+    //DetourUpdateThread(GetCurrentThread());
     fnGetDeviceData = (IDirectInputDevice_GetDeviceData_t)vTable[10];
     fnGetDeviceState = (IDirectInputDevice_GetDeviceState_t)vTable[9];
     fnSetDeviceFormat = (IDirectInputDevice_SetDeviceFormat_t)vTable[11];
 
-    DetourAttach(&(PVOID&)vTable[10], HookedGetDeviceData);
-    DetourAttach(&(PVOID&)vTable[9], HookedGetDeviceState);
-    DetourAttach(&(PVOID&)vTable[11], HookedSetDeviceFormat);
-    DetourTransactionCommit();
-
-    Game::hook({ "RaidGroupFunc", "CommandFunc" });
+    MH_CreateHook((LPVOID)fnGetDeviceData, HookedGetDeviceData, nullptr);
+    MH_CreateHook((LPVOID)fnGetDeviceState, HookedGetDeviceState, nullptr);
+    MH_CreateHook((LPVOID)fnSetDeviceFormat, HookedSetDeviceFormat, nullptr);
+    MH_EnableHook(MH_ALL_HOOKS);
+    //DetourAttach(&(PVOID&)vTable[10], HookedGetDeviceData);
+    //DetourAttach(&(PVOID&)vTable[9], HookedGetDeviceState);
+    //DetourAttach(&(PVOID&)vTable[11], HookedSetDeviceFormat);
+    //DetourTransactionCommit();
+     
+    Game::hook({ "CommandFunc" });
+    //Game::hook({ "RaidGroupFunc", "CommandFunc" });
     //Game::hook({ "RaidGroupFunc"});
     inputHooked = true;
 }
 
 void UI::unhookInput() noexcept
-{
+{/*
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
     if (fnGetDeviceData) DetourDetach(&(PVOID&)fnGetDeviceData, HookedGetDeviceData);
     if (fnGetDeviceState) DetourDetach(&(PVOID&)fnGetDeviceState, HookedGetDeviceState);
     if (fnSetDeviceFormat) DetourDetach(&(PVOID&)fnSetDeviceFormat, HookedSetDeviceFormat);
-    DetourTransactionCommit();
+    DetourTransactionCommit();*/
     Game::unhook();
+    MH_DisableHook(MH_ALL_HOOKS);
     inputHooked = false;
 }
