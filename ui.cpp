@@ -330,7 +330,7 @@ void drawRaider(const EQRaider* r, int color) noexcept
     ImGui::LabelText("##Group", "% 4s", Classes::classShortStrings[r->cls].c_str());
     ImGui::PopStyleColor();
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(45);
+    ImGui::SetNextItemWidth(45); 
     ImGui::LabelText("##Group", " %c%c%c%c%c",
         " R"[r->raidLead], " G"[r->groupLead], " L"[r->masterLooter], " A"[r->assist], " M"[r->marker]);
 }
@@ -385,7 +385,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
         hookInput();
 
         settingsIcon = getIcon("Tomato");
-        if(false) raid.init();
+        if(true) raid.init();
     }
 
     ImGuiIO& io = ImGui::GetIO();
@@ -419,7 +419,8 @@ void UI::render(IDirect3DDevice9* device) noexcept
     }
     ImGui::End();
 
-    if (false && (menuOpen || (settings::openWithRaidWindow && raid.raidWindowOpen())))
+    //if ((menuOpen || (settings::openWithRaidWindow && raid.raidWindowOpen())))
+    if (menuOpen)
     {
         ImGui::Begin("Raid");
         if (ImGui::Button("Exit"))
@@ -427,15 +428,16 @@ void UI::render(IDirect3DDevice9* device) noexcept
             settings::save();
             exit = true;
         }
+        
         if (true)
         {
+            const auto& raiders = raid.read();
+            bool isRaidLead = raid.amIRaidLead();
             for (auto& v : groups)
             {
                 v.clear();
             }
             ungrouped.clear();
-            const auto& raiders = raid.read();
-            bool isRaidLead = raid.amIRaidLead();
             for (const auto& r : raiders)
             {
                 if (r.exists)
@@ -460,8 +462,8 @@ void UI::render(IDirect3DDevice9* device) noexcept
                 std::sort(g.begin(), g.end(), sorter);
             }
             std::sort(ungrouped.begin(), ungrouped.end(), sorter);
-
-
+            
+            
             ImGui::BeginGroup();
             for (int i = 0; i < 12; ++i)
             {
@@ -586,7 +588,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
             ImGui::Dummy({ 400, 0 });
             ImGui::SameLine(0, 440);
             ImGui::Text("  Average level: % 3d", raid.averageLevel());
-
+            
             ImGui::BeginGroup();
 
             if (raid.locked())
@@ -703,8 +705,8 @@ void UI::render(IDirect3DDevice9* device) noexcept
                 settings::save();
                 exit = true;
             }
-            ImGui::End();
         }
+        ImGui::End();
     }
 
     ImGui::EndFrame();
@@ -730,21 +732,22 @@ void UI::hookInput() noexcept
     void** vTable = *reinterpret_cast<void***>(keyboard);
     //DetourTransactionBegin();
     //DetourUpdateThread(GetCurrentThread());
-    fnGetDeviceData = (IDirectInputDevice_GetDeviceData_t)vTable[10];
-    fnGetDeviceState = (IDirectInputDevice_GetDeviceState_t)vTable[9];
-    fnSetDeviceFormat = (IDirectInputDevice_SetDeviceFormat_t)vTable[11];
+    // 
+    //fnGetDeviceData = (IDirectInputDevice_GetDeviceData_t)vTable[10];
+   // fnGetDeviceState = (IDirectInputDevice_GetDeviceState_t)vTable[9];
+    //fnSetDeviceFormat = (IDirectInputDevice_SetDeviceFormat_t)vTable[11];
 
-    MH_CreateHook((LPVOID)fnGetDeviceData, HookedGetDeviceData, nullptr);
-    MH_CreateHook((LPVOID)fnGetDeviceState, HookedGetDeviceState, nullptr);
-    MH_CreateHook((LPVOID)fnSetDeviceFormat, HookedSetDeviceFormat, nullptr);
+    MH_CreateHook((LPVOID)vTable[10], HookedGetDeviceData, (LPVOID*)&fnGetDeviceData);
+    MH_CreateHook((LPVOID)vTable[9], HookedGetDeviceState, (LPVOID*)&fnGetDeviceState);
+    MH_CreateHook((LPVOID)vTable[11], HookedSetDeviceFormat, (LPVOID*)&fnSetDeviceFormat);
     MH_EnableHook(MH_ALL_HOOKS);
+    // 
     //DetourAttach(&(PVOID&)vTable[10], HookedGetDeviceData);
     //DetourAttach(&(PVOID&)vTable[9], HookedGetDeviceState);
     //DetourAttach(&(PVOID&)vTable[11], HookedSetDeviceFormat);
     //DetourTransactionCommit();
      
-    Game::hook({ "CommandFunc" });
-    //Game::hook({ "RaidGroupFunc", "CommandFunc" });
+    Game::hook({ "RaidGroupFunc", "CommandFunc" });
     //Game::hook({ "RaidGroupFunc"});
     inputHooked = true;
 }

@@ -37,6 +37,7 @@ std::chrono::time_point<std::chrono::high_resolution_clock> pauseTime = std::chr
 bool paused = false;
 volatile bool exiting = false;
 
+
 HRESULT __stdcall hookedEndScene(IDirect3DDevice9* device)
 {
     if (exiting)
@@ -114,21 +115,20 @@ DWORD WINAPI Menu(HINSTANCE hModule)
 
     FreeConsole();
     MH_Initialize();
-    //hookEndScene();
+    hookEndScene();
 
-    Game::hook({ "RaidGroupFunc", "CommandFunc" });
+    //Game::hook({ "RaidGroupFunc", "CommandFunc" });
     while (true)
     {
         Sleep(25);
-        if(GetAsyncKeyState(VK_F7) & 1 || !ui.isWindowOpen() || ui.exiting())
-        //if(GetAsyncKeyState(VK_F7) & 1)
+        if(!ui.isWindowOpen() || ui.exiting())
         {
             exiting = true;
             break;
         }
     }
 
-    //ui.shutdown();
+    ui.shutdown();
     Game::unhook();
 
     MH_DisableHook(MH_ALL_HOOKS);
