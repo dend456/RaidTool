@@ -193,7 +193,7 @@ void UI::update(float dt) noexcept
 
 static ImVector<ImRect> s_GroupPanelLabelStack;
 
-void BeginGroupPanel(const char* name, const ImVec2& size, float maxWidth)
+void BeginGroupPanel(const char* name, const ImVec2& size, float maxWidth, const char* droppableID, void* payload, size_t payloadSize)
 {
     ImGui::BeginGroup();
 
@@ -217,7 +217,20 @@ void BeginGroupPanel(const char* name, const ImVec2& size, float maxWidth)
     ImGui::BeginGroup();
     ImGui::Dummy(ImVec2(frameHeight * 0.5f, 0.0f));
     ImGui::SameLine(0.0f, 0.0f);
-    ImGui::TextUnformatted(name);
+    if (droppableID)
+    {
+        ImGui::Selectable(name, false, 0, {55, 15});
+        if (ImGui::BeginDragDropSource())
+        {
+            ImGui::Text(name);
+            ImGui::SetDragDropPayload(droppableID, payload, payloadSize);
+            ImGui::EndDragDropSource();
+        }
+    }
+    else
+    {
+        ImGui::TextUnformatted(name);
+    }
     auto labelMin = ImGui::GetItemRectMin();
     auto labelMax = ImGui::GetItemRectMax();
     ImGui::SameLine(0.0f, 0.0f);
@@ -318,9 +331,24 @@ void EndGroupPanel()
 void drawRaider(const EQRaider* r, int color) noexcept
 {
     ImGui::SetNextItemWidth(100);
-    if (r->dead) ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 242, 0, 255));
+    bool colorPop = false;
+    if (r->dead)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 242, 0, 255));
+        colorPop = true;
+    }
+    /*else if (!r->inZone)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(155, 155, 64, 255));
+        colorPop = true;
+    }*/
+    else if (r->afk)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(150, 150, 255, 255));
+        colorPop = true;
+    }
     ImGui::LabelText("##Group", "% -15s", r->name);
-    if (r->dead) ImGui::PopStyleColor();
+    if (colorPop) ImGui::PopStyleColor();
     ImGui::SameLine();
     ImGui::SetNextItemWidth(20);
     ImGui::LabelText("##Group", "% 3d", r->level);
@@ -419,8 +447,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
     }
     ImGui::End();
 
-    //if ((menuOpen || (settings::openWithRaidWindow && raid.raidWindowOpen())))
-    if (menuOpen)
+    if (menuOpen || (settings::openWithRaidWindow && raid.raidWindowOpen()))
     {
         ImGui::Begin("Raid");
         if (ImGui::Button("Exit"))
@@ -468,7 +495,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
             for (int i = 0; i < 12; ++i)
             {
                 std::string label = fmt::format("Group {}", i + 1);
-                BeginGroupPanel(label.c_str(), ImVec2(150, 0), 220.0f);
+                BeginGroupPanel(label.c_str(), ImVec2(150, 0), 220.0f, "MOVE_GROUP", (void*)&i, sizeof(i));
                 ImGui::BeginGroup();
                 std::string id = fmt::format("##Groupid{}", i);
                 ImGui::PushID(id.c_str());
@@ -483,7 +510,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
                         if (raid.setSelectedRaider(r->name))
                         {
                             std::string targetStr = fmt::format("/target {}", std::string(r->name));
-                            //Game::hookedCommandFunc(0, 0, 0, targetStr.c_str());
+                            Game::hookedCommandFunc(0, 0, targetStr.c_str());
                         }
                     }
 
@@ -526,6 +553,11 @@ void UI::render(IDirect3DDevice9* device) noexcept
                             const EQRaider* eqraider = *(EQRaider**)payload->Data;
                             raid.moveToGroup(eqraider->name, i);
                         }
+                        else if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MOVE_GROUP"))
+                        {
+                            const int group = *(int*)payload->Data;
+                            raid.moveGroupToGroup(group, i);
+                        }
                         ImGui::EndDragDropTarget();
                         memset(selectedRaider, 0, sizeof(selectedRaider));
                     }
@@ -542,7 +574,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
             ImGui::EndGroup();
             ImGui::SameLine();
 
-            BeginGroupPanel("Ungrouped", ImVec2(0, 609), 230);
+            BeginGroupPanel("Ungrouped", ImVec2(0, 609), 230, nullptr, nullptr, 0);
             ImGui::BeginChild("##ungrouped2", { 230, 609 });
             for (const auto* r : ungrouped)
             {
@@ -555,7 +587,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
                     if (raid.setSelectedRaider(r->name))
                     {
                         std::string targetStr = fmt::format("/target {}", std::string(r->name));
-                        //Game::hookedCommandFunc(0, 0, 0, targetStr.c_str());
+                        Game::hookedCommandFunc(0, 0, targetStr.c_str());
                     }
                 }
                 if (ImGui::BeginDragDropSource())
@@ -577,6 +609,11 @@ void UI::render(IDirect3DDevice9* device) noexcept
                 {
                     const EQRaider* eqraider = *(EQRaider**)payload->Data;
                     raid.removeFromGroup(eqraider->name);
+                }
+                else if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MOVE_GROUP"))
+                {
+                    const int group = *(int*)payload->Data;
+                    raid.moveGroupToGroup(group, -1);
                 }
                 ImGui::EndDragDropTarget();
             }
@@ -666,14 +703,6 @@ void UI::render(IDirect3DDevice9* device) noexcept
             if (ImGui::Button("ML", { 70,25 }) && (isRaidLead || strcmp("Teach", raid.myName()) == 0))
             {
                 raid.clickButton(RaidButton::masterlooter);
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Make Tijj ML", {100, 25}) && (isRaidLead || strcmp("Teach", raid.myName()) == 0))
-            {
-                if (raid.setSelectedRaider("Tijj"))
-                {
-                    raid.clickButton(RaidButton::masterlooter);
-                }
             }
             if (ImGui::Button("Assist", { 70,25 }) && isRaidLead)
             {
