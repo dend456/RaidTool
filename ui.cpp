@@ -335,11 +335,11 @@ void drawRaider(const EQRaider* r, int color) noexcept
         ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 242, 0, 255));
         colorPop = true;
     }
-    /*else if (!r->inZone)
+    else if (settings::openWithRaidWindow && !r->inZone)
     {
         ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(155, 155, 64, 255));
         colorPop = true;
-    }*/
+    }
     else if (r->afk)
     {
         ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(150, 150, 255, 255));
@@ -445,14 +445,9 @@ void UI::render(IDirect3DDevice9* device) noexcept
     }
     ImGui::End();
 
-    if (menuOpen || (settings::openWithRaidWindow && raid.raidWindowOpen()))
+    if ((menuOpen && !settings::openWithRaidWindow) || (settings::openWithRaidWindow && raid.raidWindowOpen()))
     {
         ImGui::Begin("Raid");
-        if (ImGui::Button("Exit"))
-        {
-            settings::save();
-            exit = true;
-        }
         if (true)
         {
             for (auto& v : groups)
@@ -711,6 +706,43 @@ void UI::render(IDirect3DDevice9* device) noexcept
             }
             ImGui::EndGroup();
 
+            ImGui::SameLine();
+            ImGui::Dummy({ 200,0 });
+            ImGui::SameLine();
+            BeginGroupPanel("Guild Invites", { 200, 200 }, 200, 0, 0, 0);
+            static bool inviteAlts = true;
+            static int inviteMinLevel = 1;
+            ImGui::BeginGroup();
+            ImGui::Checkbox("Alts", &inviteAlts);
+            ImGui::SetNextItemWidth(100.0f);
+            ImGui::DragInt("Min Level", &inviteMinLevel, .8f, 1, 130);
+            ImGui::EndGroup();
+            ImGui::SameLine();
+            ImGui::BeginGroup();
+            if (ImGui::Button("Invite All", { 85, 25 }))
+            {
+                std::bitset<17> classes;
+                classes.set();
+                raid.inviteGuild(classes, inviteMinLevel, inviteAlts);
+            }
+            if (ImGui::Button("Invite Util", { 85, 25 }))
+            {
+                std::bitset<17> classes = Classes::healerBits | Classes::tankBits;
+                classes.set(Classes::bard);
+                classes.set(Classes::enchanter);
+                raid.inviteGuild(classes, inviteMinLevel, inviteAlts);
+            }
+            if (ImGui::Button("Invite DPS", { 85, 25 }))
+            {
+                std::bitset<17> classes = Classes::dpsBits;
+                classes.reset(Classes::bard);
+                classes.reset(Classes::enchanter);
+                raid.inviteGuild(classes, inviteMinLevel, inviteAlts);
+            }
+            ImGui::EndGroup();
+
+            EndGroupPanel();
+
             if (ImGui::Button("Build Groups", { 70,25 }) && isRaidLead)
             {
                 raid.makeGroups();
@@ -722,14 +754,14 @@ void UI::render(IDirect3DDevice9* device) noexcept
             }
             ImGui::Dummy(ImVec2(0, 10));
             ImGui::Checkbox("Move button", &moveMenuButton);
-            ImGui::Checkbox("Open with raid window (wee bit jank atm)", &settings::openWithRaidWindow);
+            ImGui::Checkbox("Open with raid window", &settings::openWithRaidWindow);
             
             ImGui::Dummy(ImVec2(140, 0));
             ImGui::SameLine();
             if (ImGui::Button("Exit##e2"))
             {
                 //Game::hookedBazaarFindFunc(0, 0, 0);
-                settings::save();
+                //settings::save();
                 exit = true;
             }
             ImGui::End();
