@@ -19,6 +19,7 @@
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_internal.h"
+#include <guild.h>
 
 using namespace std::literals;
 
@@ -618,6 +619,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
             ImGui::SameLine(0, 440);
             ImGui::Text("  Average level: % 3d", raid.averageLevel());
 
+            BeginGroupPanel("Raid Shit", { 390, 200 }, 390, 0, 0, 0);
             ImGui::BeginGroup();
 
             if (raid.locked())
@@ -705,10 +707,25 @@ void UI::render(IDirect3DDevice9* device) noexcept
                 raid.clickButton(RaidButton::mark);
             }
             ImGui::EndGroup();
+            EndGroupPanel();
 
             ImGui::SameLine();
-            ImGui::Dummy({ 200,0 });
+            BeginGroupPanel("Grouping", { 95, 200 }, 95, 0, 0, 0);
+            if (ImGui::Button("Group Alts", { 85, 25 }) && isRaidLead)
+            {
+                raid.groupAlts();
+            }
+            if (ImGui::Button("Make Groups", { 85,25 }) && isRaidLead)
+            {
+                raid.makeGroups();
+            }
+            if (ImGui::Button("Kill Groups", { 85,25 }) && isRaidLead)
+            {
+                raid.killGroups();
+            }
+            EndGroupPanel();
             ImGui::SameLine();
+
             BeginGroupPanel("Guild Invites", { 200, 200 }, 200, 0, 0, 0);
             static bool inviteAlts = true;
             static int inviteMinLevel = 1;
@@ -742,16 +759,20 @@ void UI::render(IDirect3DDevice9* device) noexcept
             ImGui::EndGroup();
 
             EndGroupPanel();
-
-            if (ImGui::Button("Build Groups", { 70,25 }) && isRaidLead)
-            {
-                raid.makeGroups();
-            }
             ImGui::SameLine();
-            if (ImGui::Button("Kill Groups", { 70,25 }) && isRaidLead)
+
+            BeginGroupPanel("Disband", { 97, 200 }, 97, 0, 0, 0);
+            if(ImGui::Button("/kickp", { 90, 25 }) && isRaidLead)
             {
-                raid.killGroups();
+                raid.kickp();
             }
+            if (ImGui::Button("Group+/kickp", { 90, 25 }) && isRaidLead)
+            {
+                raid.groupAlts();
+                raid.kickp();
+            }
+            EndGroupPanel();
+
             ImGui::Dummy(ImVec2(0, 10));
             ImGui::Checkbox("Move button", &moveMenuButton);
             ImGui::Checkbox("Open with raid window", &settings::openWithRaidWindow);
