@@ -613,10 +613,9 @@ void UI::render(IDirect3DDevice9* device) noexcept
             EndGroupPanel();
 
             ImGui::Dummy({ 400, 0 });
-            ImGui::SameLine(0, 440);
+            ImGui::SameLine(0, 290);
             ImGui::Text("Players in raid: % 3d", raid.raidSize());
-            ImGui::Dummy({ 400, 0 });
-            ImGui::SameLine(0, 440);
+            ImGui::SameLine(0, 20);
             ImGui::Text("  Average level: % 3d", raid.averageLevel());
 
             BeginGroupPanel("Raid Shit", { 390, 200 }, 390, 0, 0, 0);
