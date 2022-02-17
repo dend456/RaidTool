@@ -39,6 +39,10 @@ IDirectInputDevice_SetDeviceFormat_t fnSetDeviceFormat = nullptr;
 GetAsyncKeyState_t fnGetAsyncKeyState = nullptr;
 GetKeyState_t fnGetKeyState = nullptr;
 
+uint64_t getDeviceDataAddr = 0;
+uint64_t getDeviceStateAddr = 0;
+uint64_t setDeviceFormatAddr = 0;
+
 bool UI::LoadTextureFromFile(const char* filename, IDirect3DDevice9* device, PDIRECT3DTEXTURE9* out_texture, int* out_width, int* out_height)
 {
     PDIRECT3DTEXTURE9 texture;
@@ -818,6 +822,10 @@ void UI::hookInput() noexcept
    // fnGetDeviceState = (IDirectInputDevice_GetDeviceState_t)vTable[9];
     //fnSetDeviceFormat = (IDirectInputDevice_SetDeviceFormat_t)vTable[11];
 
+    getDeviceDataAddr = (uint64_t)vTable[10];
+    getDeviceStateAddr = (uint64_t)vTable[9];
+    setDeviceFormatAddr = (uint64_t)vTable[11];
+
     MH_CreateHook((LPVOID)vTable[10], HookedGetDeviceData, (LPVOID*)&fnGetDeviceData);
     MH_CreateHook((LPVOID)vTable[9], HookedGetDeviceState, (LPVOID*)&fnGetDeviceState);
     MH_CreateHook((LPVOID)vTable[11], HookedSetDeviceFormat, (LPVOID*)&fnSetDeviceFormat);
@@ -841,7 +849,11 @@ void UI::unhookInput() noexcept
     if (fnGetDeviceState) DetourDetach(&(PVOID&)fnGetDeviceState, HookedGetDeviceState);
     if (fnSetDeviceFormat) DetourDetach(&(PVOID&)fnSetDeviceFormat, HookedSetDeviceFormat);
     DetourTransactionCommit();*/
-    Game::unhook();
+
     MH_DisableHook(MH_ALL_HOOKS);
+    //MH_RemoveHook((LPVOID)getDeviceDataAddr);
+    //MH_RemoveHook((LPVOID)getDeviceStateAddr);
+    //MH_RemoveHook((LPVOID)setDeviceFormatAddr);
+
     inputHooked = false;
 }

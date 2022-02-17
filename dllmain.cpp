@@ -36,6 +36,7 @@ UI ui;
 std::chrono::time_point<std::chrono::high_resolution_clock> pauseTime = std::chrono::high_resolution_clock::now();
 bool paused = false;
 volatile bool exiting = false;
+uint64_t endSceneAddr = 0;
 
 
 HRESULT __stdcall hookedEndScene(IDirect3DDevice9* device)
@@ -56,12 +57,12 @@ HRESULT __stdcall hookedEndScene(IDirect3DDevice9* device)
 }
 
 
-void hookEndScene()
+bool hookEndScene()
 {
     IDirect3D9* pD3D = Direct3DCreate9(D3D_SDK_VERSION);
     if (!pD3D)
     {
-        return;
+        return false;
     }
 
     D3DPRESENT_PARAMETERS d3dparams = { 0 };
@@ -73,17 +74,18 @@ void hookEndScene()
     if (FAILED(result) || !pDevice)
     {
         pD3D->Release();
-        return;
+        return false;
     }
 
     void** vTable = *reinterpret_cast<void***>(pDevice);
     EndSceneType es = (EndSceneType)vTable[42];
-
+    endSceneAddr = (uint64_t)es;
     MH_CreateHook((LPVOID)es, hookedEndScene, (LPVOID*)&endScene);
     MH_EnableHook(MH_ALL_HOOKS);
 
     pDevice->Release();
     pD3D->Release();
+    return true;
 }
 
 
@@ -96,26 +98,33 @@ DWORD __stdcall EjectThread(LPVOID lpParameter)
 
 DWORD WINAPI Menu(HINSTANCE hModule)
 {
-    HANDLE hFile = CreateFile("raidtool/log.txt", GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE hFile = CreateFile("raidtool\\log.txt", GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     uint64_t nHandle = _open_osfhandle((uint64_t)hFile, _O_APPEND);
     settings::logFile = _fdopen(nHandle, "a");
     settings::load();
     Game::logFile = settings::logFile;
-
     //fopen_s(&settings::logFile, "raidtool/log.txt", "a");
     //FILE* fp = nullptr;
     //FILE* fperr = nullptr;
 
-    AllocConsole();
+    //AllocConsole();
     //freopen_s(&fp, "CONOUT$", "w", stdout);
     //freopen_s(&fperr, "CONERR$", "w", stderr);
     //freopen_s(&settings::logFile, "raidtool/log.txt", "a", stdout);
     //freopen_s(&fperr, "g:/b.txt", "w", stderr);
     
+    Offsets::load("raidtool\\offsets.ini");
 
-    FreeConsole();
+    //FreeConsole();
     MH_Initialize();
-    hookEndScene();
+    if (!hookEndScene())
+    {
+        fprintf(settings::logFile, "error hooking end scene\n");
+        fflush(settings::logFile);    
+        if (settings::logFile) fclose(settings::logFile);
+        CreateThread(0, 0, EjectThread, 0, 0, 0);
+        return 0;
+    }
 
     //Game::hook({ "RaidGroupFunc", "CommandFunc" });
     while (true)
@@ -132,6 +141,8 @@ DWORD WINAPI Menu(HINSTANCE hModule)
     Game::unhook();
 
     MH_DisableHook(MH_ALL_HOOKS);
+    //MH_RemoveHook((LPVOID)endSceneAddr);
+    MH_RemoveHook(MH_ALL_HOOKS);
     MH_Uninitialize();
     //if (fp) fclose(fp);
     //if (fperr) fclose(fperr);
