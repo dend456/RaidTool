@@ -62,17 +62,32 @@ bool hookEndScene()
     IDirect3D9* pD3D = Direct3DCreate9(D3D_SDK_VERSION);
     if (!pD3D)
     {
+        fprintf(settings::logFile, "error Direct3DCreate9\n");
+        fflush(settings::logFile);
         return false;
     }
 
     D3DPRESENT_PARAMETERS d3dparams = { 0 };
+    d3dparams.BackBufferCount = 1;
+    d3dparams.MultiSampleType = D3DMULTISAMPLE_NONE;
+    d3dparams.MultiSampleQuality = 0;
     d3dparams.SwapEffect = D3DSWAPEFFECT_DISCARD;
     d3dparams.hDeviceWindow = GetForegroundWindow();
     d3dparams.Windowed = true;
+    d3dparams.Flags = 0;
+    d3dparams.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
+    d3dparams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+    d3dparams.BackBufferFormat = D3DFMT_R5G6B5;
+    d3dparams.EnableAutoDepthStencil = 0;
+    d3dparams.BackBufferWidth = 640;
+    d3dparams.BackBufferHeight = 480;
+
     IDirect3DDevice9* pDevice = nullptr;
     HRESULT result = pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, d3dparams.hDeviceWindow, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dparams, &pDevice);
     if (FAILED(result) || !pDevice)
     {
+        fprintf(settings::logFile, "error CreateDevice %lu\n", result);
+        fflush(settings::logFile);
         pD3D->Release();
         return false;
     }
@@ -103,15 +118,8 @@ DWORD WINAPI Menu(HINSTANCE hModule)
     settings::logFile = _fdopen(nHandle, "a");
     settings::load();
     Game::logFile = settings::logFile;
-    //fopen_s(&settings::logFile, "raidtool/log.txt", "a");
-    //FILE* fp = nullptr;
-    //FILE* fperr = nullptr;
 
     //AllocConsole();
-    //freopen_s(&fp, "CONOUT$", "w", stdout);
-    //freopen_s(&fperr, "CONERR$", "w", stderr);
-    //freopen_s(&settings::logFile, "raidtool/log.txt", "a", stdout);
-    //freopen_s(&fperr, "g:/b.txt", "w", stderr);
     
     Offsets::load("raidtool\\offsets.ini");
 
@@ -126,7 +134,6 @@ DWORD WINAPI Menu(HINSTANCE hModule)
         return 0;
     }
 
-    //Game::hook({ "RaidGroupFunc", "CommandFunc" });
     while (true)
     {
         Sleep(25);
@@ -141,11 +148,9 @@ DWORD WINAPI Menu(HINSTANCE hModule)
     Game::unhook();
 
     MH_DisableHook(MH_ALL_HOOKS);
-    //MH_RemoveHook((LPVOID)endSceneAddr);
     MH_RemoveHook(MH_ALL_HOOKS);
     MH_Uninitialize();
-    //if (fp) fclose(fp);
-    //if (fperr) fclose(fperr);
+
     if (settings::logFile) fclose(settings::logFile);
     CreateThread(0, 0, EjectThread, 0, 0, 0);
     return 0;

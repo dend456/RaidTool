@@ -699,7 +699,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
 
             ImGui::SameLine();
             ImGui::BeginGroup();
-            if (ImGui::Button("ML", { 70,25 }) && (isRaidLead || strcmp("Teach", raid.myName()) == 0))
+            if (ImGui::Button("ML", { 70,25 }) && (isRaidLead || strcmp("Teach", raid.myName()) == 0 || strcmp("Mabiktenu", raid.myName()) == 0))
             {
                 raid.clickButton(RaidButton::masterlooter);
             }
@@ -836,7 +836,7 @@ void UI::hookInput() noexcept
     //DetourAttach(&(PVOID&)vTable[11], HookedSetDeviceFormat);
     //DetourTransactionCommit();
      
-    Game::hook({ "RaidGroupFunc", "CommandFunc" });
+    Game::hook({ "RaidGroupFunc", "CommandFunc", "GroundSpawnClickFunc"});
     //Game::hook({ "RaidGroupFunc"});
     inputHooked = true;
 }
