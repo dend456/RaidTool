@@ -18,6 +18,7 @@
 #include "imgui_impl_win32.h"
 
 #include "icon.h"
+#include <raid.h>
 
 namespace fs = std::filesystem;
 
@@ -45,6 +46,7 @@ private:
 	static BOOL CALLBACK enumWindowCallback(HWND handle, LPARAM lParam);
 
 	void loadItems() noexcept;
+	std::vector<std::filesystem::path> getSavedRaids() const noexcept;
 
 	std::string commandFuncCallback(int eq, int* p, const char* s) noexcept;
 	bool refreshCmd() noexcept;

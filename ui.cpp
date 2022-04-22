@@ -16,7 +16,6 @@
 
 #include <game.h>
 #include <classes.h>
-#include <raid.h>
 #include <MinHook.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -368,6 +367,19 @@ void drawRaider(const EQRaider* r, int color) noexcept
         " R"[r->raidLead], " G"[r->groupLead], " L"[r->masterLooter], " A"[r->assist], " M"[r->marker]);
 }
 
+
+std::vector<std::filesystem::path> UI::getSavedRaids() const noexcept
+{
+    std::vector<std::filesystem::path> files;
+    const std::filesystem::path dir = ".\\raidtool\\saved raids";
+    for (auto const& file : std::filesystem::directory_iterator{ dir })
+    {
+        files.push_back(file.path().filename());
+    }
+
+    return files;
+}
+
 void UI::render(IDirect3DDevice9* device) noexcept
 {
     static Raid raid;
@@ -376,6 +388,9 @@ void UI::render(IDirect3DDevice9* device) noexcept
     static char selectedRaider[16] = {0};
     static std::array<std::vector<EQRaider*>, 12> groups{};
     static std::vector<EQRaider*> ungrouped;
+    static bool loadingDump = false;
+    static std::vector<std::filesystem::path> raidDumps;
+    static int currentRaidDump = -1;
 
     if (!device || exit)
     {
@@ -452,7 +467,54 @@ void UI::render(IDirect3DDevice9* device) noexcept
     }
     ImGui::End();
 
-    if ((menuOpen && !settings::openWithRaidWindow) || (settings::openWithRaidWindow && raid.raidWindowOpen()))
+    if (loadingDump)
+    {
+        ImGui::Begin("Choose Raid Dump");
+
+        std::string currentPath = "";
+        if (currentRaidDump >= 0 && currentRaidDump < raidDumps.size())
+        {
+            currentPath = raidDumps[currentRaidDump].string();
+        }
+
+        ImGui::SetNextItemWidth(350);
+        if (ImGui::BeginCombo("##raidDumpCombo", currentPath.c_str()))
+        {
+            for (int i = 0; i < raidDumps.size(); ++i)
+            {
+                bool selected = currentRaidDump == i;
+                std::string strpath = raidDumps[i].string();
+                if (ImGui::Selectable(strpath.c_str(), selected))
+                {
+                    currentRaidDump = i;
+                }
+                if (selected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Load", { 80, 20 }))
+        {
+            if (currentRaidDump >= 0 && currentRaidDump < raidDumps.size())
+            {
+                std::filesystem::path root = ".\\raidtool\\saved raids";
+
+                raid.loadDump(root / raidDumps[currentRaidDump]);
+            }
+            loadingDump = false;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", { 80, 20 }))
+        {
+            loadingDump = false;
+        }
+
+        ImGui::End();
+    }
+    else if ((menuOpen && !settings::openWithRaidWindow) || (settings::openWithRaidWindow && raid.raidWindowOpen()))
     {
         ImGui::Begin("Raid");
         if (true)
@@ -720,13 +782,18 @@ void UI::render(IDirect3DDevice9* device) noexcept
             {
                 raid.groupAlts();
             }
-            if (ImGui::Button("Make Groups", { 85,25 }) && isRaidLead)
+            if (ImGui::Button("Auto Group", { 85,25 }) && isRaidLead)
             {
                 raid.makeGroups();
             }
             if (ImGui::Button("Kill Groups", { 85,25 }) && isRaidLead)
             {
                 raid.killGroups();
+            }
+            if (ImGui::Button("Load Dump", { 85,25 }))
+            {
+                raidDumps = getSavedRaids();
+                loadingDump = true;
             }
             EndGroupPanel();
             ImGui::SameLine();
