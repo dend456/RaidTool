@@ -44,16 +44,10 @@
     <ClInclude Include="icon.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="fontawesome-webfont.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="imgui_impl_dx9.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="imgui_impl_win32.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="IconsFontAwesome5.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

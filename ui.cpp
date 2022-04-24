@@ -6,8 +6,6 @@
 #include <thread>
 #include <charconv>
 
-#include "IconsFontAwesome5.h"
-#include "fontawesome-webfont.h"
 #include "ui.h"
 #include <detours/detours.h>
 #include "settings.h"
@@ -426,11 +424,13 @@ void UI::render(IDirect3DDevice9* device) noexcept
             return;
         }
 
+        /*
         io.Fonts->AddFontDefault();
         ImFontConfig config;
         config.MergeMode = true;
         const ImWchar icon_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
         iconFont = io.Fonts->AddFontFromMemoryTTF(fontawesome_webfont_ttf, fontawesome_webfont_ttf_len, 16.0f, &config, icon_ranges);
+        */
         hin = (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE);
         hookInput();
 
@@ -463,7 +463,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
     }
     else
     {
-        if (ImGui::Button(ICON_FA_COG))
+        if (ImGui::Button("Raid"))
         {
             menuOpen = !menuOpen;
         }
