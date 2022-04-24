@@ -125,7 +125,8 @@ BOOL CALLBACK UI::enumWindowCallback(HWND handle, LPARAM lParam)
 
 void UI::loadItems() noexcept
 {
-    std::ifstream input(settings::itemIconsPath);
+    itemIcons["Tomato"] = 6346 - 500;
+    /*std::ifstream input(settings::itemIconsPath);
     if (!input.good())
     {
         //fmt::print(settings::logFile, "Failed to open {}\n", settings::itemIconsPath.generic_string());
@@ -138,6 +139,7 @@ void UI::loadItems() noexcept
         std::getline(input, iconId);
         itemIcons[item] = std::stoi(iconId) - 500;
     }
+    */
 }
 
 UI::UI()
@@ -433,6 +435,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
         hookInput();
 
         settingsIcon = getIcon("Tomato");
+        
         if(true) raid.init();
     }
 
