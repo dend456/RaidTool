@@ -388,7 +388,8 @@ void UI::render(IDirect3DDevice9* device) noexcept
     static char selectedRaider[16] = {0};
     static std::array<std::vector<EQRaider*>, 12> groups{};
     static std::vector<EQRaider*> ungrouped;
-    static bool loadingDump = false;
+    static int loadingDump = 0;
+    static int loadingString = 0;
     static std::vector<std::filesystem::path> raidDumps;
     static int currentRaidDump = -1;
 
@@ -504,15 +505,21 @@ void UI::render(IDirect3DDevice9* device) noexcept
             if (currentRaidDump >= 0 && currentRaidDump < raidDumps.size())
             {
                 std::filesystem::path root = ".\\raidtool\\saved raids";
-
-                raid.loadDump(root / raidDumps[currentRaidDump]);
+                if (loadingDump == 1)
+                {
+                    raid.loadDump(root / raidDumps[currentRaidDump]);
+                }
+                else if (loadingDump == 2)
+                {
+                    raid.inviteDump(root / raidDumps[currentRaidDump]);
+                }
             }
-            loadingDump = false;
+            loadingDump = 0;
         }
         ImGui::SameLine();
         if (ImGui::Button("Cancel", { 80, 20 }))
         {
-            loadingDump = false;
+            loadingDump = 0;
         }
 
         ImGui::End();
@@ -599,7 +606,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
                     drawRaider(r, color);
                     ImGui::PopID();
                 }
-                int groupSize = groups[i].size();
+                int groupSize = (int)groups[i].size();
                 if (groupSize < 6)
                 {
                     ImGui::PushID(i);
@@ -796,7 +803,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
             if (ImGui::Button("Load Dump", { 85,25 }))
             {
                 raidDumps = getSavedRaids();
-                loadingDump = true;
+                loadingDump = 1;
             }
             EndGroupPanel();
             ImGui::SameLine();
@@ -830,6 +837,11 @@ void UI::render(IDirect3DDevice9* device) noexcept
                 classes.reset(Classes::bard);
                 classes.reset(Classes::enchanter);
                 raid.inviteGuild(classes, inviteMinLevel, inviteAlts);
+            }
+            if (ImGui::Button("Invite Dump", { 85,25 }))
+            {
+                raidDumps = getSavedRaids();
+                loadingDump = 2;
             }
             ImGui::EndGroup();
 

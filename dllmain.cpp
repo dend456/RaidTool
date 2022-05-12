@@ -115,7 +115,7 @@ DWORD WINAPI Menu(HINSTANCE hModule)
 {
     HANDLE hFile = CreateFile("raidtool\\log.txt", GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     uint64_t nHandle = _open_osfhandle((uint64_t)hFile, _O_APPEND);
-    settings::logFile = _fdopen(nHandle, "a");
+    settings::logFile = _fdopen((int)nHandle, "a");
     settings::load();
     Game::logFile = settings::logFile;
 
