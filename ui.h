@@ -50,6 +50,7 @@ private:
 
 	std::string commandFuncCallback(int eq, int* p, const char* s) noexcept;
 	bool refreshCmd() noexcept;
+	std::string getPasteString() const noexcept;
 
 	IDirect3DDevice9* device = nullptr;
 	std::map<std::string, int> itemIcons;

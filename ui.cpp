@@ -195,6 +195,25 @@ void UI::update(float dt) noexcept
 
 }
 
+
+std::string UI::getPasteString() const noexcept
+{
+    if (!OpenClipboard(nullptr)) return "";
+        
+    HANDLE hData = GetClipboardData(CF_TEXT);
+    if (hData == nullptr) return "";
+    
+    char* pszText = static_cast<char*>(GlobalLock(hData));
+    if (pszText == nullptr) return "";
+
+    std::string text(pszText);
+
+    GlobalUnlock(hData);
+    CloseClipboard();
+
+    return text;
+}
+
 static ImVector<ImRect> s_GroupPanelLabelStack;
 
 void BeginGroupPanel(const char* name, const ImVec2& size, float maxWidth, const char* droppableID, void* payload, size_t payloadSize)
@@ -800,7 +819,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
             {
                 raid.killGroups();
             }
-            if (ImGui::Button("Load Dump", { 85,25 }))
+            if (ImGui::Button("From Dump##grouping", { 85,25 }))
             {
                 raidDumps = getSavedRaids();
                 loadingDump = 1;
@@ -808,15 +827,26 @@ void UI::render(IDirect3DDevice9* device) noexcept
             EndGroupPanel();
             ImGui::SameLine();
 
-            BeginGroupPanel("Guild Invites", { 200, 200 }, 200, 0, 0, 0);
+            BeginGroupPanel("Invites", { 200, 200 }, 200, 0, 0, 0);
             static bool inviteAlts = true;
             static int inviteMinLevel = 1;
+            BeginGroupPanel("Group", { 90, 200 }, 90, 0, 0, 0);
+            ImGui::BeginGroup();
+            if (ImGui::Button("From Paste##group", { 85,25 }))
+            {
+                std::string paste = getPasteString();
+                raid.inviteString(paste, false);
+            }
+            ImGui::EndGroup();
+            EndGroupPanel();
+            ImGui::SameLine();
+            BeginGroupPanel("Raid", { 90, 200 }, 90, 0, 0, 0);
+            ImGui::BeginGroup();
             ImGui::BeginGroup();
             ImGui::Checkbox("Alts", &inviteAlts);
             ImGui::SetNextItemWidth(100.0f);
             ImGui::DragInt("Min Level", &inviteMinLevel, .8f, 1, 130);
             ImGui::EndGroup();
-            ImGui::SameLine();
             ImGui::BeginGroup();
             if (ImGui::Button("Invite All", { 85, 25 }))
             {
@@ -838,13 +868,22 @@ void UI::render(IDirect3DDevice9* device) noexcept
                 classes.reset(Classes::enchanter);
                 raid.inviteGuild(classes, inviteMinLevel, inviteAlts);
             }
-            if (ImGui::Button("Invite Dump", { 85,25 }))
+            ImGui::EndGroup();
+            ImGui::SameLine();
+            ImGui::BeginGroup();
+            if (ImGui::Button("From Dump##raid", { 85,25 }))
             {
                 raidDumps = getSavedRaids();
                 loadingDump = 2;
             }
+            if (ImGui::Button("From Paste", { 85,25 }))
+            {
+                std::string paste = getPasteString();
+                raid.inviteString(paste, true);
+            }
             ImGui::EndGroup();
-
+            ImGui::EndGroup();
+            EndGroupPanel();
             EndGroupPanel();
             ImGui::SameLine();
 
