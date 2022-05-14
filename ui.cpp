@@ -824,6 +824,11 @@ void UI::render(IDirect3DDevice9* device) noexcept
                 raidDumps = getSavedRaids();
                 loadingDump = 1;
             }
+            if (ImGui::Button("From Paste##grouping", { 85,25 }))
+            {
+                std::string paste = getPasteString();
+                raid.groupFromString(paste);
+            }
             EndGroupPanel();
             ImGui::SameLine();
 
