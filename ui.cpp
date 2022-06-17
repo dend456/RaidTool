@@ -19,6 +19,7 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_internal.h"
 #include <guild.h>
+#include <set>
 
 using namespace std::literals;
 
@@ -411,6 +412,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
     static int loadingString = 0;
     static std::vector<std::filesystem::path> raidDumps;
     static int currentRaidDump = -1;
+    static std::set<std::string> mod_names = { "Teach", "Shanks", "Mabiktenu" };
 
     if (!device || exit)
     {
@@ -550,6 +552,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
         {
             const auto& raiders = raid.read();
             bool isRaidLead = raid.amIRaidLead();
+            bool isMod = mod_names.find(raid.myName()) != mod_names.end();
             for (auto& v : groups)
             {
                 v.clear();
@@ -715,6 +718,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
             ImGui::SameLine(0, 20);
             ImGui::Text("  Average level: % 3d", raid.averageLevel());
 
+            ImGui::BeginGroup();
             BeginGroupPanel("Raid Shit", { 390, 200 }, 390, 0, 0, 0);
             ImGui::BeginGroup();
 
@@ -790,20 +794,42 @@ void UI::render(IDirect3DDevice9* device) noexcept
 
             ImGui::SameLine();
             ImGui::BeginGroup();
-            if (ImGui::Button("ML", { 70,25 }) && (isRaidLead || strcmp("Teach", raid.myName()) == 0 || strcmp("Mabiktenu", raid.myName()) == 0))
+            if (ImGui::Button("ML", { 70,25 }) && (isRaidLead || isMod))
             {
                 raid.clickButton(RaidButton::masterlooter);
             }
-            if (ImGui::Button("Assist", { 70,25 }) && isRaidLead)
+            if (ImGui::Button("Assist", { 70,25 }) && (isRaidLead || isMod))
             {
                 raid.clickButton(RaidButton::assist);
             }
-            if (ImGui::Button("MarkNPC", { 70,25 }) && isRaidLead)
+            if (ImGui::Button("MarkNPC", { 70,25 }) && (isRaidLead || isMod))
             {
                 raid.clickButton(RaidButton::mark);
             }
             ImGui::EndGroup();
             EndGroupPanel();
+
+            BeginGroupPanel("Expedition", { 200, 100 }, 200, 0, 0, 0);
+            ImGui::BeginGroup();
+
+            if (ImGui::Button("Invite##expedinvite") && (isRaidLead || isMod))
+            {
+                raid.inviteToExpedition(selectedRaider);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Invite raid") && (isRaidLead || isMod))
+            {
+                raid.inviteRaidToExpedition();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Kick exp") && (isRaidLead || isMod))
+            {
+                raid.kickExpedition();
+            }
+
+            ImGui::EndGroup();
+            EndGroupPanel();
+            ImGui::EndGroup();
 
             ImGui::SameLine();
             BeginGroupPanel("Grouping", { 95, 200 }, 95, 0, 0, 0);
@@ -904,11 +930,13 @@ void UI::render(IDirect3DDevice9* device) noexcept
             }
             EndGroupPanel();
 
+
             ImGui::Dummy(ImVec2(0, 10));
             ImGui::Checkbox("Move button", &moveMenuButton);
             ImGui::Checkbox("Open with raid window", &settings::openWithRaidWindow);
-            
-            ImGui::Dummy(ImVec2(140, 0));
+
+            ImGui::SameLine();
+            ImGui::Dummy(ImVec2(750, 0));
             ImGui::SameLine();
             if (ImGui::Button("Exit##e2"))
             {
