@@ -770,6 +770,19 @@ void UI::render(IDirect3DDevice9* device) noexcept
             {
                 raid.clickButton(RaidButton::options);
             }
+            ImGui::SameLine();
+            if (ImGui::Button("Copy Dump", { 70, 25 }))
+            {
+                std::string s = raid.dumpString();
+                auto size = s.length() + 1;
+                HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, size);
+                memcpy_s(GlobalLock(hMem), size, s.c_str(), size);
+                GlobalUnlock(hMem);
+                OpenClipboard(NULL);
+                EmptyClipboard();
+                SetClipboardData(CF_TEXT, hMem);
+                CloseClipboard();
+            }
 
             if (ImGui::Button("Inv Exp", { 70,25 }))
             {
