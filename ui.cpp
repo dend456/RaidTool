@@ -755,6 +755,31 @@ void UI::render(IDirect3DDevice9* device) noexcept
             {
                 raid.clickButton(RaidButton::makeleader);
             }
+            ImGui::SameLine();
+            if (ImGui::Button("Save Raid", { 70,25 }))
+            {
+                std::string s = raid.dumpString();
+                auto time = std::time(nullptr);
+                std::string path = fmt::format("raidtool/saved raids/{}_{}.txt", std::string(raid.myName()), time);
+                try
+                {
+                    FILE* f = nullptr;
+                    auto e = fopen_s(&f, path.c_str(), "w");
+                    if (f)
+                    {
+                        fmt::print(f, s);
+                        std::fclose(f);
+                    }
+                    else
+                    {
+                        fmt::print(settings::logFile, "Error saving raid {}\n", e);
+                    }
+                }
+                catch(const std::exception & e)
+                {
+                    fmt::print(settings::logFile, "Error saving raid {}\n", e.what());
+                }
+            }
 
             if (ImGui::Button("AddLooter", { 70,25 }) && isRaidLead)
             {
