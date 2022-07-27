@@ -1028,7 +1028,7 @@ void UI::hookInput() noexcept
     //DetourAttach(&(PVOID&)vTable[11], HookedSetDeviceFormat);
     //DetourTransactionCommit();
      
-    Game::hook({ "RaidGroupFunc", "CommandFunc" });
+    Game::hook({ "RaidGroupFunc", "CommandFunc", "OnMessageFunc"});
     //Game::hook({ "RaidGroupFunc"});
     inputHooked = true;
 }
