@@ -325,7 +325,7 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
             BYTE keyboardState[256];
             GetKeyboardState(keyboardState);
             WORD ascii = 0;
-            const int len = ToAscii(wParam, (lParam >> 16) & 0x00ff, keyboardState, &ascii, 0);
+            const int len = ToAscii((UINT)wParam, (lParam >> 16) & 0x00ff, keyboardState, &ascii, 0);
             if (len == 1)
             {
                 io.AddInputCharacterUTF16((unsigned short)ascii);
