@@ -5,7 +5,6 @@
 
 void settings::save() noexcept
 {
-	return;
 	try
 	{
 		std::ofstream out(settings::settingsPath);
@@ -29,7 +28,6 @@ void settings::save() noexcept
 
 void settings::load() noexcept
 {
-	return;
 	try
 	{
 		std::ifstream in(settings::settingsPath);
@@ -45,8 +43,11 @@ void settings::load() noexcept
 
 		std::string item;
 		std::getline(ss, item, ' ');
-		std::getline(ss, item, '\n');
-		settings::openWithRaidWindow = std::stoi(item);
+		if (item == "openWithRaidWindow")
+		{
+			std::getline(ss, item, '\n');
+			settings::openWithRaidWindow = std::stoi(item);
+		}
 	}
 	catch (const std::exception& e)
 	{

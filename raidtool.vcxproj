@@ -285,15 +285,19 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="chaction.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="icon.cpp" />
+    <ClCompile Include="imgui_ext.cpp" />
     <ClCompile Include="imgui_impl_dx9.cpp" />
     <ClCompile Include="imgui_impl_win32.cpp" />
     <ClCompile Include="settings.cpp" />
     <ClCompile Include="ui.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="chaction.h" />
     <ClInclude Include="icon.h" />
+    <ClInclude Include="imgui_ext.h" />
     <ClInclude Include="imgui_impl_dx9.h" />
     <ClInclude Include="imgui_impl_win32.h" />
     <ClInclude Include="settings.h" />

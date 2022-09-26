@@ -20,6 +20,9 @@
 #include "imgui_internal.h"
 #include <guild.h>
 #include <set>
+#include "imgui_ext.h"
+
+#include <boost/xpressive/xpressive.hpp>
 
 using namespace std::literals;
 
@@ -143,7 +146,7 @@ void UI::loadItems() noexcept
 
 UI::UI()
 {
-    //settings::load();
+    settings::load();
 }
 
 UI::~UI()
@@ -215,146 +218,10 @@ std::string UI::getPasteString() const noexcept
     return text;
 }
 
-static ImVector<ImRect> s_GroupPanelLabelStack;
-
-void BeginGroupPanel(const char* name, const ImVec2& size, float maxWidth, const char* droppableID, void* payload, size_t payloadSize)
-{
-    ImGui::BeginGroup();
-
-    auto cursorPos = ImGui::GetCursorScreenPos();
-    auto itemSpacing = ImGui::GetStyle().ItemSpacing;
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-
-    auto frameHeight = ImGui::GetFrameHeight();
-    ImGui::BeginGroup();
-
-    ImVec2 effectiveSize = size;
-    if (size.x < 0.0f)
-        effectiveSize.x = ImGui::GetContentRegionAvailWidth();
-    else
-        effectiveSize.x = size.x;
-    ImGui::Dummy(ImVec2(effectiveSize.x, 0.0f));
-
-    ImGui::Dummy(ImVec2(frameHeight * 0.5f, 0.0f));
-    ImGui::SameLine(0.0f, 0.0f);
-    ImGui::BeginGroup();
-    ImGui::Dummy(ImVec2(frameHeight * 0.5f, 0.0f));
-    ImGui::SameLine(0.0f, 0.0f);
-    if (droppableID)
-    {
-        ImGui::Selectable(name, false, 0, {55, 15});
-        if (ImGui::BeginDragDropSource())
-        {
-            ImGui::Text(name);
-            ImGui::SetDragDropPayload(droppableID, payload, payloadSize);
-            ImGui::EndDragDropSource();
-        }
-    }
-    else
-    {
-        ImGui::TextUnformatted(name);
-    }
-    auto labelMin = ImGui::GetItemRectMin();
-    auto labelMax = ImGui::GetItemRectMax();
-    ImGui::SameLine(0.0f, 0.0f);
-    ImGui::Dummy(ImVec2(0.0, frameHeight + itemSpacing.y));
-    ImGui::BeginGroup();
-
-    //ImGui::GetWindowDrawList()->AddRect(labelMin, labelMax, IM_COL32(255, 0, 255, 255));
-
-    ImGui::PopStyleVar(2);
-
-#if IMGUI_VERSION_NUM >= 17301
-    ImGui::GetCurrentWindow()->ContentRegionRect.Max.x -= frameHeight * 0.5f;
-    ImGui::GetCurrentWindow()->WorkRect.Max.x -= frameHeight * 0.5f;
-    ImGui::GetCurrentWindow()->InnerRect.Max.x -= frameHeight * 0.5f;
-#else
-    ImGui::GetCurrentWindow()->ContentsRegionRect.Max.x -= frameHeight * 0.5f;
-#endif
-    ImGui::GetCurrentWindow()->Size.x -= frameHeight;
-
-    auto itemWidth = ImGui::CalcItemWidth();
-    ImGui::PushItemWidth(ImMax(0.0f, maxWidth));
-
-    s_GroupPanelLabelStack.push_back(ImRect(labelMin, labelMax));
-}
-
-void EndGroupPanel()
-{
-    ImGui::PopItemWidth();
-
-    auto itemSpacing = ImGui::GetStyle().ItemSpacing;
-
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-
-    auto frameHeight = ImGui::GetFrameHeight();
-
-    ImGui::EndGroup();
-
-    //ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), IM_COL32(0, 255, 0, 64), 4.0f);
-
-    ImGui::EndGroup();
-
-    ImGui::SameLine(0.0f, 0.0f);
-    ImGui::Dummy(ImVec2(frameHeight * 0.5f, 0.0f));
-    ImGui::Dummy(ImVec2(0.0, frameHeight - frameHeight * 0.5f - itemSpacing.y));
-
-    ImGui::EndGroup();
-
-    auto itemMin = ImGui::GetItemRectMin();
-    auto itemMax = ImGui::GetItemRectMax();
-    //ImGui::GetWindowDrawList()->AddRectFilled(itemMin, itemMax, IM_COL32(255, 0, 0, 64), 4.0f);
-
-    auto labelRect = s_GroupPanelLabelStack.back();
-    s_GroupPanelLabelStack.pop_back();
-
-    ImVec2 halfFrame = ImVec2(frameHeight * 0.25f, frameHeight) * 0.5f;
-    ImRect frameRect = ImRect(itemMin + halfFrame, itemMax - ImVec2(halfFrame.x, 0.0f));
-    labelRect.Min.x -= itemSpacing.x;
-    labelRect.Max.x += itemSpacing.x;
-    for (int i = 0; i < 4; ++i)
-    {
-        switch (i)
-        {
-            // left half-plane
-        case 0: ImGui::PushClipRect(ImVec2(-FLT_MAX, -FLT_MAX), ImVec2(labelRect.Min.x, FLT_MAX), true); break;
-            // right half-plane
-        case 1: ImGui::PushClipRect(ImVec2(labelRect.Max.x, -FLT_MAX), ImVec2(FLT_MAX, FLT_MAX), true); break;
-            // top
-        case 2: ImGui::PushClipRect(ImVec2(labelRect.Min.x, -FLT_MAX), ImVec2(labelRect.Max.x, labelRect.Min.y), true); break;
-            // bottom
-        case 3: ImGui::PushClipRect(ImVec2(labelRect.Min.x, labelRect.Max.y), ImVec2(labelRect.Max.x, FLT_MAX), true); break;
-        }
-
-        ImGui::GetWindowDrawList()->AddRect(
-            frameRect.Min, frameRect.Max,
-            ImColor(ImGui::GetStyleColorVec4(ImGuiCol_Border)),
-            halfFrame.x);
-
-        ImGui::PopClipRect();
-    }
-
-    ImGui::PopStyleVar(2);
-
-#if IMGUI_VERSION_NUM >= 17301
-    ImGui::GetCurrentWindow()->ContentRegionRect.Max.x += frameHeight * 0.5f;
-    ImGui::GetCurrentWindow()->WorkRect.Max.x += frameHeight * 0.5f;
-    ImGui::GetCurrentWindow()->InnerRect.Max.x += frameHeight * 0.5f;
-#else
-    ImGui::GetCurrentWindow()->ContentsRegionRect.Max.x += frameHeight * 0.5f;
-#endif
-    ImGui::GetCurrentWindow()->Size.x += frameHeight;
-
-    ImGui::Dummy(ImVec2(0.0f, 0.0f));
-
-    ImGui::EndGroup();
-}
 
 void drawRaider(const EQRaider* r, int color) noexcept
 {
-    ImGui::SetNextItemWidth(100);
+    ImGui::SetNextItemWidth(115);
     bool colorPop = false;
     if (r->dead)
     {
@@ -371,19 +238,19 @@ void drawRaider(const EQRaider* r, int color) noexcept
         ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(150, 150, 255, 255));
         colorPop = true;
     }
-    ImGui::LabelText("##Group", "% -15s", r->name);
+    ImGui::LabelText("##Group", "%s", r->name);
     if (colorPop) ImGui::PopStyleColor();
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(20);
+    ImGui::SameLine(115);
+    ImGui::SetNextItemWidth(35);
     ImGui::LabelText("##Group", "% 3d", r->level);
-    ImGui::SameLine();
+    ImGui::SameLine(150);
     ImGui::PushStyleColor(ImGuiCol_Text, color);
-    ImGui::SetNextItemWidth(30);
+    ImGui::SetNextItemWidth(40);
     ImGui::LabelText("##Group", "% 4s", Classes::classShortStrings[r->cls].c_str());
     ImGui::PopStyleColor();
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(45); 
-    ImGui::LabelText("##Group", " %c%c%c%c%c",
+    ImGui::SameLine(190);
+    ImGui::SetNextItemWidth(40); 
+    ImGui::LabelText("##Group", "%c%c%c%c%c",
         " R"[r->raidLead], " G"[r->groupLead], " L"[r->masterLooter], " A"[r->assist], " M"[r->marker]);
 }
 
@@ -400,6 +267,14 @@ std::vector<std::filesystem::path> UI::getSavedRaids() const noexcept
     return files;
 }
 
+void UI::onLogMessageCallback(const char* msg) noexcept
+{
+    for (auto& chactiongroup : chactions)
+    {
+        chactiongroup.onMessage(msg);
+    }
+}
+
 void UI::render(IDirect3DDevice9* device) noexcept
 {
     static Raid raid;
@@ -412,7 +287,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
     static int loadingString = 0;
     static std::vector<std::filesystem::path> raidDumps;
     static int currentRaidDump = -1;
-    static std::set<std::string> mod_names = { "Teach", "Shanks", "Mabiktenu" };
+    static std::set<std::string> mod_names = { "Teach", "Shanks", "Mabiktenu", "Jolksh"};
 
     if (!device || exit)
     {
@@ -452,12 +327,17 @@ void UI::render(IDirect3DDevice9* device) noexcept
         config.MergeMode = true;
         const ImWchar icon_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
         iconFont = io.Fonts->AddFontFromMemoryTTF(fontawesome_webfont_ttf, fontawesome_webfont_ttf_len, 16.0f, &config, icon_ranges);
-        */
+        */ 
         hin = (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE);
         hookInput();
 
         settingsIcon = getIcon("Tomato");
+        Game::onLogMessageCallback = std::bind(&UI::onLogMessageCallback, this, std::placeholders::_1);;
         
+        std::ifstream file("raidtool\\chactions.txt");
+        json js = json::parse(file);
+        chactions = js;
+
         if(true) raid.init();
     }
 
@@ -588,7 +468,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
             for (int i = 0; i < 12; ++i)
             {
                 std::string label = fmt::format("Group {}", i + 1);
-                BeginGroupPanel(label.c_str(), ImVec2(150, 0), 220.0f, "MOVE_GROUP", (void*)&i, sizeof(i));
+                BeginGroupPanel(label.c_str(), ImVec2(150, 0), 200.0f, "MOVE_GROUP", (void*)&i, sizeof(i));
                 ImGui::BeginGroup();
                 std::string id = fmt::format("##Groupid{}", i);
                 ImGui::PushID(id.c_str());
@@ -597,7 +477,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
                     int color = raid.colorForClass(r->cls);
                     ImGui::PushID(r->name);
                     bool selected = strcmp(r->name, selectedRaider) == 0;
-                    if (ImGui::Selectable("##selectgroup", selected, 0, { 230, 15 }))
+                    if (ImGui::Selectable("##selectgroup", selected, 0, { 240, 15 }))
                     {
                         strncpy_s(selectedRaider, r->name, 16);
                         if (raid.setSelectedRaider(r->name))
@@ -624,7 +504,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
                         memset(selectedRaider, 0, sizeof(selectedRaider));
                     }
                     ImGui::SameLine();
-                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 235);
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 240);
                     drawRaider(r, color);
                     ImGui::PopID();
                 }
@@ -632,10 +512,10 @@ void UI::render(IDirect3DDevice9* device) noexcept
                 if (groupSize < 6)
                 {
                     ImGui::PushID(i);
-                    ImGui::BeginChild("##EmptyGroup", { 230.0f, 22.5f * (6 - groupSize) }, false, ImGuiWindowFlags_NoScrollbar);
+                    ImGui::BeginChild("##EmptyGroup", { 240.0f, 22.5f * (6 - groupSize) }, false, ImGuiWindowFlags_NoScrollbar);
                     for (int j = groupSize; j < 6; ++j)
                     {
-                        ImGui::SetNextItemWidth(230);
+                        ImGui::SetNextItemWidth(240);
                         ImGui::LabelText("##Group2", "-");
                     }
                     ImGui::EndChild();
@@ -691,7 +571,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
                     memset(selectedRaider, 0, sizeof(selectedRaider));
                 }
                 ImGui::SameLine();
-                ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 235);
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 240);
                 drawRaider(r, color);
                 ImGui::PopID();
             }
@@ -967,8 +847,11 @@ void UI::render(IDirect3DDevice9* device) noexcept
                 raid.kickp();
             }
             EndGroupPanel();
-
-
+            
+            if (ImGui::Button("Chactions\nmore prealpha than pantheon"))
+            {
+                chactionsWindowOpen = !chactionsWindowOpen;
+            }
             ImGui::Dummy(ImVec2(0, 10));
             ImGui::Checkbox("Move button", &moveMenuButton);
             ImGui::Checkbox("Open with raid window", &settings::openWithRaidWindow);
@@ -978,12 +861,25 @@ void UI::render(IDirect3DDevice9* device) noexcept
             ImGui::SameLine();
             if (ImGui::Button("Exit##e2"))
             {
-                //Game::hookedBazaarFindFunc(0, 0, 0);
-                //settings::save();
+                settings::save();
+                json js = chactions;
+                std::ofstream file("raidtool\\chactions.txt");
+                file << js;
+
                 exit = true;
             }
             ImGui::End();
         }
+    }
+    
+    if (chactionsWindowOpen)
+    {
+        ImGui::Begin("Chactions");
+        for (auto& group : chactions)
+        {
+            group.render();
+        }
+        ImGui::End();
     }
 
     ImGui::EndFrame();

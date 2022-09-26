@@ -19,6 +19,7 @@
 
 #include "icon.h"
 #include <raid.h>
+#include "chaction.h"
 
 namespace fs = std::filesystem;
 
@@ -49,6 +50,7 @@ private:
 	std::vector<std::filesystem::path> getSavedRaids() const noexcept;
 
 	std::string commandFuncCallback(int eq, int* p, const char* s) noexcept;
+	void onLogMessageCallback(const char* msg) noexcept;
 	bool refreshCmd() noexcept;
 	std::string getPasteString() const noexcept;
 
@@ -59,6 +61,7 @@ private:
 	const char* selectedSystem = nullptr;
 	bool menuOpen = true;
 	bool windowOpen = true;
+	bool chactionsWindowOpen = false;
 	bool exit = false;
 	bool dkpError = false;
 	bool moveMenuButton = false;
@@ -67,6 +70,8 @@ private:
 	char serverBuff[BUFFER_SIZE] = { 0 };
 	int playerDkp = -1;
 	ImGuiContext* context = nullptr;
+
+	std::vector<ChactionGroup> chactions;
 
 	Icon* getIcon(const std::string& item) noexcept;
 
