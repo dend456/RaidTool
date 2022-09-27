@@ -23,6 +23,7 @@
 #include "ui.h"
 #include "settings.h"
 #include <game.h>
+#include <spdlog/spdlog.h>
 
 using namespace std::chrono_literals;
 
@@ -116,14 +117,24 @@ DWORD WINAPI Menu(HINSTANCE hModule)
     HANDLE hFile = CreateFile("raidtool\\log.txt", GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     uint64_t nHandle = _open_osfhandle((uint64_t)hFile, _O_APPEND);
     settings::logFile = _fdopen((int)nHandle, "a");
+    try
+    {
+        Game::logger = spdlog::basic_logger_mt("basic_logger", "raidtool\\log.txt");
+        Game::logger->set_pattern("[%l][%H:%M:%S.%f%z][%05t] %v");
+        Game::logger->set_level(spdlog::level::err);
+        Game::logger->flush_on(spdlog::level::err);
+        Game::logger->flush_on(spdlog::level::debug);
+        spdlog::flush_every(std::chrono::seconds(5));
+    }
+    catch (const spdlog::spdlog_ex& ex)
+    {
+        fprintf(settings::logFile, "error starting logger %s\n", ex.what());
+        fflush(settings::logFile);
+    }
     settings::load();
     Game::logFile = settings::logFile;
-
-    //AllocConsole();
-    
     Offsets::load("raidtool\\offsets.ini");
 
-    //FreeConsole();
     MH_Initialize();
     if (!hookEndScene())
     {
@@ -144,6 +155,8 @@ DWORD WINAPI Menu(HINSTANCE hModule)
         }
     }
 
+    Game::logger = nullptr;
+    spdlog::shutdown();
     ui.shutdown();
     Game::unhook();
 

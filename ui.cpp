@@ -287,7 +287,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
     static int loadingString = 0;
     static std::vector<std::filesystem::path> raidDumps;
     static int currentRaidDump = -1;
-    static std::set<std::string> mod_names = { "Teach", "Shanks", "Mabiktenu", "Jolksh"};
+    static std::set<std::string> mod_names = { "Teach", "Shanks", "Mabiktenu", "Jolksh", "Gaskor"};
 
     if (!device || exit)
     {
@@ -652,12 +652,18 @@ void UI::render(IDirect3DDevice9* device) noexcept
                     }
                     else
                     {
-                        fmt::print(settings::logFile, "Error saving raid {}\n", e);
+                        if (Game::logger)
+                        {
+                            Game::logger->error("Error saving raid {}", e);
+                        }
                     }
                 }
                 catch(const std::exception & e)
                 {
-                    fmt::print(settings::logFile, "Error saving raid {}\n", e.what());
+                    if (Game::logger)
+                    {
+                        Game::logger->error("Error saving raid {}", e.what());
+                    }
                 }
             }
 
@@ -851,6 +857,15 @@ void UI::render(IDirect3DDevice9* device) noexcept
             if (ImGui::Button("Chactions\nmore prealpha than pantheon"))
             {
                 chactionsWindowOpen = !chactionsWindowOpen;
+            }
+            if (isMod)
+            {
+                ImGui::SameLine();
+                static int selectedLogLevel = spdlog::level::err;
+                int beforeSel = selectedLogLevel;
+                ImGui::SetNextItemWidth(100);
+                ImGui::Combo("Log Level", &selectedLogLevel, "Trace\0Debug\0Info\0Warn\0Error\0Critical\0Off");
+                Game::logger->set_level((spdlog::level::level_enum)(selectedLogLevel));
             }
             ImGui::Dummy(ImVec2(0, 10));
             ImGui::Checkbox("Move button", &moveMenuButton);
