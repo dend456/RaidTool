@@ -1,0 +1,3 @@
+[submodule "GameLib"]
+	path = GameLib
+	url = https://github.com/dend456/GameLib.git
