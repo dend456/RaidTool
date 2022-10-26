@@ -5,9 +5,9 @@ VisualStudioVersion = 17.1.31903.286
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "raidtool", "raidtool.vcxproj", "{CF690FAE-4B1E-46C3-8CB7-030D57442BA3}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gamelib", "..\gamelib\gamelib.vcxproj", "{55332E25-4C62-4181-99C1-EE702D8FED89}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "raidtoolinjector", "raidtoolinjector\raidtoolinjector.vcxproj", "{CCEF6C2C-8BB7-46C1-9046-A2678969A508}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gamelib", "GameLib\gamelib.vcxproj", "{55332E25-4C62-4181-99C1-EE702D8FED89}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,18 +31,6 @@ Global
 		{CF690FAE-4B1E-46C3-8CB7-030D57442BA3}.Release|x64.Build.0 = Release|x64
 		{CF690FAE-4B1E-46C3-8CB7-030D57442BA3}.Release|x86.ActiveCfg = Release|Win32
 		{CF690FAE-4B1E-46C3-8CB7-030D57442BA3}.Release|x86.Build.0 = Release|Win32
-		{55332E25-4C62-4181-99C1-EE702D8FED89}.Debug|x64.ActiveCfg = Debug|x64
-		{55332E25-4C62-4181-99C1-EE702D8FED89}.Debug|x64.Build.0 = Debug|x64
-		{55332E25-4C62-4181-99C1-EE702D8FED89}.Debug|x86.ActiveCfg = Debug|Win32
-		{55332E25-4C62-4181-99C1-EE702D8FED89}.Debug|x86.Build.0 = Debug|Win32
-		{55332E25-4C62-4181-99C1-EE702D8FED89}.relcon|x64.ActiveCfg = relcon|x64
-		{55332E25-4C62-4181-99C1-EE702D8FED89}.relcon|x64.Build.0 = relcon|x64
-		{55332E25-4C62-4181-99C1-EE702D8FED89}.relcon|x86.ActiveCfg = relcon|Win32
-		{55332E25-4C62-4181-99C1-EE702D8FED89}.relcon|x86.Build.0 = relcon|Win32
-		{55332E25-4C62-4181-99C1-EE702D8FED89}.Release|x64.ActiveCfg = Release|x64
-		{55332E25-4C62-4181-99C1-EE702D8FED89}.Release|x64.Build.0 = Release|x64
-		{55332E25-4C62-4181-99C1-EE702D8FED89}.Release|x86.ActiveCfg = Release|Win32
-		{55332E25-4C62-4181-99C1-EE702D8FED89}.Release|x86.Build.0 = Release|Win32
 		{CCEF6C2C-8BB7-46C1-9046-A2678969A508}.Debug|x64.ActiveCfg = Debug|x64
 		{CCEF6C2C-8BB7-46C1-9046-A2678969A508}.Debug|x64.Build.0 = Debug|x64
 		{CCEF6C2C-8BB7-46C1-9046-A2678969A508}.Debug|x86.ActiveCfg = Debug|Win32
@@ -55,6 +43,18 @@ Global
 		{CCEF6C2C-8BB7-46C1-9046-A2678969A508}.Release|x64.Build.0 = Release|x64
 		{CCEF6C2C-8BB7-46C1-9046-A2678969A508}.Release|x86.ActiveCfg = Release|Win32
 		{CCEF6C2C-8BB7-46C1-9046-A2678969A508}.Release|x86.Build.0 = Release|Win32
+		{55332E25-4C62-4181-99C1-EE702D8FED89}.Debug|x64.ActiveCfg = Debug|x64
+		{55332E25-4C62-4181-99C1-EE702D8FED89}.Debug|x64.Build.0 = Debug|x64
+		{55332E25-4C62-4181-99C1-EE702D8FED89}.Debug|x86.ActiveCfg = Debug|Win32
+		{55332E25-4C62-4181-99C1-EE702D8FED89}.Debug|x86.Build.0 = Debug|Win32
+		{55332E25-4C62-4181-99C1-EE702D8FED89}.relcon|x64.ActiveCfg = relcon|x64
+		{55332E25-4C62-4181-99C1-EE702D8FED89}.relcon|x64.Build.0 = relcon|x64
+		{55332E25-4C62-4181-99C1-EE702D8FED89}.relcon|x86.ActiveCfg = relcon|Win32
+		{55332E25-4C62-4181-99C1-EE702D8FED89}.relcon|x86.Build.0 = relcon|Win32
+		{55332E25-4C62-4181-99C1-EE702D8FED89}.Release|x64.ActiveCfg = Release|x64
+		{55332E25-4C62-4181-99C1-EE702D8FED89}.Release|x64.Build.0 = Release|x64
+		{55332E25-4C62-4181-99C1-EE702D8FED89}.Release|x86.ActiveCfg = Release|Win32
+		{55332E25-4C62-4181-99C1-EE702D8FED89}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
