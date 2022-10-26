@@ -334,10 +334,16 @@ void UI::render(IDirect3DDevice9* device) noexcept
         settingsIcon = getIcon("Tomato");
         Game::onLogMessageCallback = std::bind(&UI::onLogMessageCallback, this, std::placeholders::_1);;
         
-        std::ifstream file("raidtool\\chactions.txt");
-        json js = json::parse(file);
-        chactions = js;
+        try
+        {
+            std::ifstream file("raidtool\\chactions.txt");
+            json js = json::parse(file);
+            chactions = js;
+        }
+        catch(const std::exception&)
+        {
 
+        }
         if(true) raid.init();
     }
 
@@ -879,7 +885,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
                 settings::save();
                 json js = chactions;
                 std::ofstream file("raidtool\\chactions.txt");
-                file << js;
+                file << std::setw(4) << js;
 
                 exit = true;
             }
