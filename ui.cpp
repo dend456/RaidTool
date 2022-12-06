@@ -864,7 +864,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
             {
                 chactionsWindowOpen = !chactionsWindowOpen;
             }
-            if (isMod)
+            //if (isMod)
             {
                 ImGui::SameLine();
                 static int selectedLogLevel = spdlog::level::err;
