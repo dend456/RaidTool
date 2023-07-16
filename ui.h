@@ -1,4 +1,5 @@
 #pragma once
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include <Windows.h>
 #include <vector>
 #include <d3d9.h>
@@ -13,13 +14,13 @@
 #pragma comment(lib, "dinput8.lib")
 #pragma comment(lib, "dxguid.lib")
 
-#include <imgui.h>
+#include "imgui.h"
 #include "imgui_impl_dx9.h"
 #include "imgui_impl_win32.h"
 
 #include "icon.h"
 #include <raid.h>
-#include "chaction.h"
+//#include "chaction.h"
 
 namespace fs = std::filesystem;
 
@@ -71,9 +72,10 @@ private:
 	int playerDkp = -1;
 	ImGuiContext* context = nullptr;
 
-	std::vector<ChactionGroup> chactions;
+	//std::vector<ChactionGroup> chactions;
 
-	Icon* getIcon(const std::string& item) noexcept;
+	Icon* getIcon(const std::string& item) noexcept; 
+	void unloadIcons() noexcept;
 
 public:
 	UI();
@@ -86,4 +88,5 @@ public:
 	void unhookInput() noexcept;
 	bool isWindowOpen() const noexcept { return windowOpen; }
 	bool exiting() const noexcept { return exit; }
+	void reset(LPDIRECT3DDEVICE9 pD3D9) noexcept;
 };

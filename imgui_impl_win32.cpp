@@ -21,7 +21,6 @@
 #else
 #define IMGUI_IMPL_WIN32_DISABLE_LINKING_XINPUT
 #endif
-#include <stdio.h>
 #if defined(_MSC_VER) && !defined(IMGUI_IMPL_WIN32_DISABLE_LINKING_XINPUT)
 #pragma comment(lib, "xinput")
 //#pragma comment(lib, "Xinput9_1_0")
@@ -73,7 +72,7 @@ bool    ImGui_ImplWin32_Init(void* hwnd)
     g_hWnd = (HWND)hwnd;
     ImGuiIO& io = ImGui::GetIO();
     io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;         // We can honor GetMouseCursor() values (optional)
- //   io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;          // We can honor io.WantSetMousePos requests (optional, rarely used)
+    io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;          // We can honor io.WantSetMousePos requests (optional, rarely used)
     io.BackendPlatformName = "imgui_impl_win32";
     io.ImeWindowHandle = hwnd;
 
@@ -316,23 +315,9 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
         return 0;
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
-    {
         if (wParam < 256)
             io.KeysDown[wParam] = 1;
-
-        if (wParam > 0 && wParam < 0x10000)
-        {
-            BYTE keyboardState[256];
-            GetKeyboardState(keyboardState);
-            WORD ascii = 0;
-            const int len = ToAscii((UINT)wParam, (lParam >> 16) & 0x00ff, keyboardState, &ascii, 0);
-            if (len == 1)
-            {
-                io.AddInputCharacterUTF16((unsigned short)ascii);
-            }
-        }
         return 0;
-    }
     case WM_KEYUP:
     case WM_SYSKEYUP:
         if (wParam < 256)
@@ -374,7 +359,7 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
 #if !defined(_versionhelpers_H_INCLUDED_) && !defined(_INC_VERSIONHELPERS)
 static BOOL IsWindowsVersionOrGreater(WORD major, WORD minor, WORD sp)
 {
-    OSVERSIONINFOEXW osvi = { sizeof(osvi), major, minor, 0, 0, { 0 }, sp, 0, 0, 0, 0 };
+    OSVERSIONINFOEXW osvi = { sizeof(osvi), major, minor, 0, 0, { 0 }, sp };
     DWORD mask = VER_MAJORVERSION | VER_MINORVERSION | VER_SERVICEPACKMAJOR;
     ULONGLONG cond = ::VerSetConditionMask(0, VER_MAJORVERSION, VER_GREATER_EQUAL);
     cond = ::VerSetConditionMask(cond, VER_MINORVERSION, VER_GREATER_EQUAL);
@@ -420,26 +405,22 @@ void ImGui_ImplWin32_EnableDpiAwareness()
             return;
         }
     }
-#if _WIN32_WINNT >= 0x0600
-    ::SetProcessDPIAware();
-#endif
+    SetProcessDPIAware();
 }
 
-#if defined(_MSC_VER) && !defined(NOGDI)
+#ifdef _MSC_VER
 #pragma comment(lib, "gdi32")   // Link with gdi32.lib for GetDeviceCaps()
 #endif
 
 float ImGui_ImplWin32_GetDpiScaleForMonitor(void* monitor)
 {
     UINT xdpi = 96, ydpi = 96;
-    static BOOL bIsWindows8Point1OrGreater = IsWindows8Point1OrGreater();
-    if (bIsWindows8Point1OrGreater)
+    if (IsWindows8Point1OrGreater())
     {
         static HINSTANCE shcore_dll = ::LoadLibraryA("shcore.dll"); // Reference counted per-process
         if (PFN_GetDpiForMonitor GetDpiForMonitorFn = (PFN_GetDpiForMonitor)::GetProcAddress(shcore_dll, "GetDpiForMonitor"))
             GetDpiForMonitorFn((HMONITOR)monitor, MDT_EFFECTIVE_DPI, &xdpi, &ydpi);
     }
-#ifndef NOGDI
     else
     {
         const HDC dc = ::GetDC(NULL);
@@ -447,7 +428,6 @@ float ImGui_ImplWin32_GetDpiScaleForMonitor(void* monitor)
         ydpi = ::GetDeviceCaps(dc, LOGPIXELSY);
         ::ReleaseDC(NULL, dc);
     }
-#endif
     IM_ASSERT(xdpi == ydpi); // Please contact me if you hit this assert!
     return xdpi / 96.0f;
 }

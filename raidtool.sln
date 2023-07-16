@@ -7,7 +7,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "raidtool", "raidtool.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "raidtoolinjector", "raidtoolinjector\raidtoolinjector.vcxproj", "{CCEF6C2C-8BB7-46C1-9046-A2678969A508}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gamelib", "GameLib\gamelib.vcxproj", "{55332E25-4C62-4181-99C1-EE702D8FED89}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gamelib", "..\gamelib\gamelib.vcxproj", "{55332E25-4C62-4181-99C1-EE702D8FED89}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

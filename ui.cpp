@@ -17,6 +17,8 @@
 #include <MinHook.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
+
+#include "imgui.h"
 #include "imgui_internal.h"
 #include <guild.h>
 #include <set>
@@ -43,6 +45,8 @@ GetKeyState_t fnGetKeyState = nullptr;
 uint64_t getDeviceDataAddr = 0;
 uint64_t getDeviceStateAddr = 0;
 uint64_t setDeviceFormatAddr = 0;
+
+LPDIRECT3DDEVICE9 dxDevice = nullptr;
 
 bool UI::LoadTextureFromFile(const char* filename, IDirect3DDevice9* device, PDIRECT3DTEXTURE9* out_texture, int* out_width, int* out_height)
 {
@@ -102,11 +106,12 @@ HRESULT WINAPI UI::HookedGetDeviceData(IDirectInputDevice8* pThis, DWORD acbObje
 
 LRESULT __stdcall UI::wndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam) || ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))// || ImGui::IsMouseDragging(ImGuiMouseButton_Left))
     {
         return true;
     }
-    return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
+    auto ret = CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
+    return ret;
 }
 
 BOOL CALLBACK UI::enumWindowCallback(HWND handle, LPARAM lParam)
@@ -153,6 +158,11 @@ UI::~UI()
 {
 }
 
+void UI::unloadIcons() noexcept
+{
+    icons.clear();
+}
+
 Icon* UI::getIcon(const std::string& item) noexcept
 {
     auto it = itemIcons.find(item);
@@ -187,7 +197,7 @@ void UI::shutdown() noexcept
     {
         unhookInput();
     }
-
+    unloadIcons();
     ImGui_ImplDX9_Shutdown();
     ImGui_ImplWin32_Shutdown();
     context = nullptr;
@@ -268,11 +278,44 @@ std::vector<std::filesystem::path> UI::getSavedRaids() const noexcept
 }
 
 void UI::onLogMessageCallback(const char* msg) noexcept
-{
+{/*
     for (auto& chactiongroup : chactions)
     {
         chactiongroup.onMessage(msg);
+    }*/
+}
+
+void UI::reset(LPDIRECT3DDEVICE9 pD3D9) noexcept
+{
+    loadItems();
+    D3DDEVICE_CREATION_PARAMETERS params;
+    device->GetCreationParameters(&params);
+    hwnd = params.hFocusWindow;
+    if (hwnd == nullptr)
+    {
+        return;
     }
+    unloadIcons();
+    settingsIcon = nullptr;
+    ImGui_ImplDX9_Shutdown();
+    ImGui::SetCurrentContext(nullptr);
+    ImGui::DestroyContext(context);
+    context = ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.IniFilename = "raidtool/raidtool.ini";
+    if (!ImGui_ImplWin32_Init(hwnd))
+    {
+        Game::logger->error("Error in ImGui_ImplWin32_Init");
+        return;
+    }
+
+    if (!ImGui_ImplDX9_Init(device))
+    {
+        Game::logger->error("Error in ImGui_ImplDX9_Init");
+        return;
+    }
+    settingsIcon = getIcon("Tomato");
+    this->device = pD3D9;
 }
 
 void UI::render(IDirect3DDevice9* device) noexcept
@@ -288,8 +331,10 @@ void UI::render(IDirect3DDevice9* device) noexcept
     static std::vector<std::filesystem::path> raidDumps;
     static int currentRaidDump = -1;
     static std::set<std::string> mod_names = { "Teach", "Shanks", "Mabiktenu", "Jolksh", "Gaskor"};
+    static std::set<std::string> skip_zones = { "Default", "clz" };
+    
 
-    if (!device || exit)
+    if (!device || exit || skip_zones.count(Game::getZone()))
     {
         return;
     }
@@ -313,14 +358,15 @@ void UI::render(IDirect3DDevice9* device) noexcept
         io.IniFilename = "raidtool/raidtool.ini";
         if (!ImGui_ImplWin32_Init(hwnd))
         {
+            Game::logger->error("Error in ImGui_ImplWin32_Init");
             return;
         }
 
         if (!ImGui_ImplDX9_Init(device))
         {
+            Game::logger->error("Error in ImGui_ImplDX9_Init");
             return;
         }
-
         /*
         io.Fonts->AddFontDefault();
         ImFontConfig config;
@@ -333,7 +379,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
 
         settingsIcon = getIcon("Tomato");
         Game::onLogMessageCallback = std::bind(&UI::onLogMessageCallback, this, std::placeholders::_1);;
-        
+        /*
         try
         {
             std::ifstream file("raidtool\\chactions.txt");
@@ -343,16 +389,20 @@ void UI::render(IDirect3DDevice9* device) noexcept
         catch(const std::exception&)
         {
 
-        }
+        }*/
         if(true) raid.init();
+        Game::logger->info("UI initialized");
     }
-
     ImGuiIO& io = ImGui::GetIO();
 
     ImGui_ImplDX9_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
+    //ImGui::EndFrame();
+    //ImGui::Render();
+    //ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+    //return;
     if (moveMenuButton)
     {
         ImGui::Begin("##menuButton", &windowOpen, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_AlwaysAutoResize);
@@ -859,15 +909,15 @@ void UI::render(IDirect3DDevice9* device) noexcept
                 raid.kickp();
             }
             EndGroupPanel();
-            
+            /*
             if (ImGui::Button("Chactions\nmore prealpha than pantheon"))
             {
                 chactionsWindowOpen = !chactionsWindowOpen;
-            }
+            }*/
             //if (isMod)
             {
-                ImGui::SameLine();
-                static int selectedLogLevel = spdlog::level::err;
+                //ImGui::SameLine();
+                static int selectedLogLevel = spdlog::level::info;
                 int beforeSel = selectedLogLevel;
                 ImGui::SetNextItemWidth(100);
                 ImGui::Combo("Log Level", &selectedLogLevel, "Trace\0Debug\0Info\0Warn\0Error\0Critical\0Off");
@@ -883,16 +933,16 @@ void UI::render(IDirect3DDevice9* device) noexcept
             if (ImGui::Button("Exit##e2"))
             {
                 settings::save();
-                json js = chactions;
+                /*json js = chactions;
                 std::ofstream file("raidtool\\chactions.txt");
                 file << std::setw(4) << js;
-
+                */
                 exit = true;
             }
             ImGui::End();
         }
     }
-    
+    /*
     if (chactionsWindowOpen)
     {
         ImGui::Begin("Chactions");
@@ -902,7 +952,7 @@ void UI::render(IDirect3DDevice9* device) noexcept
         }
         ImGui::End();
     }
-
+    */
     ImGui::EndFrame();
     ImGui::Render();
     ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
@@ -924,12 +974,6 @@ void UI::hookInput() noexcept
     }
 
     void** vTable = *reinterpret_cast<void***>(keyboard);
-    //DetourTransactionBegin();
-    //DetourUpdateThread(GetCurrentThread());
-    // 
-    //fnGetDeviceData = (IDirectInputDevice_GetDeviceData_t)vTable[10];
-   // fnGetDeviceState = (IDirectInputDevice_GetDeviceState_t)vTable[9];
-    //fnSetDeviceFormat = (IDirectInputDevice_SetDeviceFormat_t)vTable[11];
 
     getDeviceDataAddr = (uint64_t)vTable[10];
     getDeviceStateAddr = (uint64_t)vTable[9];
@@ -938,31 +982,14 @@ void UI::hookInput() noexcept
     MH_CreateHook((LPVOID)vTable[10], HookedGetDeviceData, (LPVOID*)&fnGetDeviceData);
     MH_CreateHook((LPVOID)vTable[9], HookedGetDeviceState, (LPVOID*)&fnGetDeviceState);
     MH_CreateHook((LPVOID)vTable[11], HookedSetDeviceFormat, (LPVOID*)&fnSetDeviceFormat);
-    MH_EnableHook(MH_ALL_HOOKS);
-    // 
-    //DetourAttach(&(PVOID&)vTable[10], HookedGetDeviceData);
-    //DetourAttach(&(PVOID&)vTable[9], HookedGetDeviceState);
-    //DetourAttach(&(PVOID&)vTable[11], HookedSetDeviceFormat);
-    //DetourTransactionCommit();
      
-    Game::hook({ "RaidGroupFunc", "CommandFunc", "OnMessageFunc"});
+    Game::hook({ "RaidGroupFunc", "CommandFunc" });
     //Game::hook({ "RaidGroupFunc"});
     inputHooked = true;
 }
 
 void UI::unhookInput() noexcept
-{/*
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
-    if (fnGetDeviceData) DetourDetach(&(PVOID&)fnGetDeviceData, HookedGetDeviceData);
-    if (fnGetDeviceState) DetourDetach(&(PVOID&)fnGetDeviceState, HookedGetDeviceState);
-    if (fnSetDeviceFormat) DetourDetach(&(PVOID&)fnSetDeviceFormat, HookedSetDeviceFormat);
-    DetourTransactionCommit();*/
-
+{
     MH_DisableHook(MH_ALL_HOOKS);
-    //MH_RemoveHook((LPVOID)getDeviceDataAddr);
-    //MH_RemoveHook((LPVOID)getDeviceStateAddr);
-    //MH_RemoveHook((LPVOID)setDeviceFormatAddr);
-
     inputHooked = false;
 }

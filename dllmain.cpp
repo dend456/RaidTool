@@ -30,7 +30,9 @@ using namespace std::chrono_literals;
 HINSTANCE DllHandle;
 
 typedef HRESULT(__stdcall* EndSceneType)(IDirect3DDevice9* device);
+typedef HRESULT(__stdcall* ResetType)(LPDIRECT3DDEVICE9 pD3D9, D3DPRESENT_PARAMETERS* params);
 EndSceneType endScene;
+ResetType resetFunc;
 
 LPD3DXFONT font;
 UI ui;
@@ -38,7 +40,14 @@ std::chrono::time_point<std::chrono::high_resolution_clock> pauseTime = std::chr
 bool paused = false;
 volatile bool exiting = false;
 uint64_t endSceneAddr = 0;
+uint64_t resetAddr = 0;
 
+HRESULT __stdcall hookedReset(LPDIRECT3DDEVICE9 pD3D9, D3DPRESENT_PARAMETERS* params)
+{
+    auto ret = resetFunc(pD3D9, params);
+    ui.reset(pD3D9);
+    return ret;
+}
 
 HRESULT __stdcall hookedEndScene(IDirect3DDevice9* device)
 {
@@ -60,6 +69,7 @@ HRESULT __stdcall hookedEndScene(IDirect3DDevice9* device)
 
 bool hookEndScene()
 {
+    Game::logger->info("Hooking EndScene");
     IDirect3D9* pD3D = Direct3DCreate9(D3D_SDK_VERSION);
     if (!pD3D)
     {
@@ -80,8 +90,8 @@ bool hookEndScene()
     d3dparams.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
     d3dparams.BackBufferFormat = D3DFMT_R5G6B5;
     d3dparams.EnableAutoDepthStencil = 0;
-    d3dparams.BackBufferWidth = 640;
-    d3dparams.BackBufferHeight = 480;
+    d3dparams.BackBufferWidth = 1920;
+    d3dparams.BackBufferHeight = 1080;
 
     IDirect3DDevice9* pDevice = nullptr;
     HRESULT result = pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, d3dparams.hDeviceWindow, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dparams, &pDevice);
@@ -95,12 +105,17 @@ bool hookEndScene()
 
     void** vTable = *reinterpret_cast<void***>(pDevice);
     EndSceneType es = (EndSceneType)vTable[42];
+    ResetType r = (ResetType)vTable[16];
     endSceneAddr = (uint64_t)es;
+    resetAddr = (uint64_t)r;
     MH_CreateHook((LPVOID)es, hookedEndScene, (LPVOID*)&endScene);
+    MH_CreateHook((LPVOID)r, hookedReset, (LPVOID*)&resetFunc);
     MH_EnableHook(MH_ALL_HOOKS);
 
     pDevice->Release();
     pD3D->Release();
+
+    Game::logger->info("EndScene hooked");
     return true;
 }
 
@@ -121,7 +136,8 @@ DWORD WINAPI Menu(HINSTANCE hModule)
     {
         Game::logger = spdlog::basic_logger_mt("basic_logger", "raidtool\\log.txt");
         Game::logger->set_pattern("[%l][%H:%M:%S.%f%z][%05t] %v");
-        Game::logger->set_level(spdlog::level::err);
+        //Game::logger->set_level(spdlog::level::err);
+        Game::logger->set_level(spdlog::level::info);
         Game::logger->flush_on(spdlog::level::err);
         Game::logger->flush_on(spdlog::level::debug);
         spdlog::flush_every(std::chrono::seconds(5));
@@ -145,6 +161,7 @@ DWORD WINAPI Menu(HINSTANCE hModule)
         return 0;
     }
 
+    Game::logger->info("Starting main loop");
     while (true)
     {
         Sleep(25);
